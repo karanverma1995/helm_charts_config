@@ -1,0 +1,170 @@
+logging {
+        level  = "info"
+        format = "logfmt"
+}
+
+//set up otlp receivers
+otelcol.receiver.otlp "receiver" {
+  debug_metrics {
+    disable_high_cardinality_metrics = true
+  }
+
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    metrics = [otelcol.processor.k8sattributes.default.input]
+  }
+}
+
+otelcol.processor.k8sattributes "default" {
+  extract {
+    metadata = ["k8s.namespace.name","k8s.pod.name"]
+  }
+  pod_association {
+    source {
+      from = "connection"
+    }
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.add_kube_attrs.input]
+  }
+}
+
+otelcol.processor.transform "add_kube_attrs" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      "set(attributes[\"k8s.pod.name\"], resource.attributes[\"k8s.pod.name\"])",
+      "set(attributes[\"k8s.namespace.name\"], resource.attributes[\"k8s.namespace.name\"])",
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.filter.default.input]
+  }
+}
+
+otelcol.processor.filter "default" {
+  error_mode = "ignore"
+
+  output {
+    metrics = [otelcol.processor.memory_limiter.default.input]
+  }
+}
+//limit batch processor memory allocation before garbage collection
+otelcol.processor.memory_limiter "default" {
+  check_interval = "1s"
+  limit = "8000MiB"
+  spike_limit = "2500MiB"
+  output {
+    metrics = [otelcol.processor.batch.batch_processor.input]
+  }
+}
+//relabel pods to capture prometheus annotations as targets for scrape
+ 
+
+//batch process otel telemetry
+otelcol.processor.batch "batch_processor" {
+  send_batch_size = 10000
+  send_batch_max_size = 11000
+  timeout = "2s"
+  output {
+    metrics = [otelcol.exporter.prometheus.metrics_converter.input]
+  }
+}
+//convert metrics from otel to prometheus
+otelcol.exporter.prometheus "metrics_converter" {
+  forward_to = [prometheus.relabel.otel_metrics.receiver]
+}
+
+prometheus.relabel "otel_metrics" {
+  rule {
+    source_labels = ["job"]
+    regex = ""
+    replacement = "integrations/otlp"
+    target_label = "job"
+  }
+  rule {
+    source_labels = ["k8s_namespace_name"]
+    action = "replace"
+    target_label = "namespace"
+  }
+  rule {
+    source_labels = ["k8s_pod_name"]
+    action = "replace"
+    target_label = "pod"
+  }
+  rule {
+    regex = "k8s_pod_name"
+    action = "labeldrop"
+  }
+  rule {
+    regex = "k8s_namespace_name"
+    action = "labeldrop"
+  }
+  rule {
+    regex = "trace_id"
+    action = "labeldrop"
+  }
+  rule {
+    regex = "span_id"
+    action = "labeldrop"
+  }
+  forward_to = [prometheus.relabel.metrics_service.receiver]
+}
+
+//add datacenter, cluster & relabel otel labels to keep consistent
+prometheus.relabel "metrics_service" {
+  rule {
+    source_labels = ["__name__"]
+    // limiting the istio proxy metrics that are kept
+    regex           = "envoy_listner*|envoy_metric*|envoy_server*|envoy_wasm*|envoy_cluster_membership*|envoy_cluster_original*|envoy_cluster_update*|envoy_cluster_lb*|envoy_cluster_manager*|envoy_cluster_internal*|envoy_cluster_max*|envoy_cluster_membership*|envoy_cluster_http2*|envoy_cluster_default*|envoy_cluster_circuit*|envoy_cluster_bind*|envoy_cluster_assignment*|envoy_cluster_upstream_flow*|envoy_cluster_upstream_internal*|envoy_cluster_upstream_rq*|envoy_cluster_version|istio_agent*"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["datacenter"]
+    regex = ""
+    replacement = env("DATACENTER")
+    target_label = "datacenter"
+  }
+  rule {
+    source_labels = ["cluster"]
+    regex = ""
+    replacement = env("CLUSTER_NAME")
+    target_label = "cluster"
+  }
+  rule {
+    source_labels = ["cluster_name"]
+    regex = ""
+    replacement = env("CLUSTER_NAME")
+    target_label = "cluster_name"
+  }
+  rule {
+    regex         = "uid|machine_id|system_uuid"
+    action        = "labeldrop"
+  }
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+//write prometheus metrics
+prometheus.remote_write "default" {
+  endpoint {
+    url = env("PROM_ENDPOINT")
+    tls_config {
+        insecure_skip_verify = true
+    }
+    basic_auth {
+        username = env("PROM_USER")
+        password = env("PROM_SECRET")
+    }
+  }
+}

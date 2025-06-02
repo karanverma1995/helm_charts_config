@@ -1,0 +1,177 @@
+logging {
+        level  = "info"
+        format = "logfmt"
+}
+
+livedebugging {
+  enabled = false
+}
+
+declare "http" {
+  export "default_scheme" {
+    value = "http"
+  }
+}
+
+discovery.kubernetes "pods" {
+  role = "pod"
+}
+
+discovery.relabel "drop_pods" {
+  targets = discovery.kubernetes.pods.targets
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    action = "drop"
+    regex = "(mp-connector-sink.*)"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    action = "drop"
+    regex = "time-wfm-atl-test|obs-system"
+  }
+}
+//relabel pods to capture prometheus annotations as targets for scrape
+discovery.relabel "pods" {
+  targets = discovery.relabel.drop_pods.output
+  rule {
+    source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+    action = "keep"
+    regex = "true"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+    action = "replace"
+    target_label = "__metrics_path__"
+  }
+  rule {
+    source_labels = [coalesce("__meta_kubernetes_pod_annotation_prometheus_io_scheme","default_scheme")]
+    action = "replace"
+    regex = "(https?)"
+    target_label = "__scheme__"
+  }
+  rule {
+    source_labels = ["__address__","__meta_kubernetes_pod_annotation_prometheus_io_port"]
+    action = "replace"
+    regex = "([^:]+)(?::\\d+)?;(\\d+)"
+    replacement = "$1:$2"
+    target_label = "__address__"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    action = "replace"
+    target_label = "namespace"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_node_name"]
+    action = "replace"
+    target_label = "node"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    action = "replace"
+    target_label = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_substream_id"]
+    action = "replace"
+    target_label = "substream_id"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_env_type"]
+    action = "replace"
+    target_label = "env_type"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_component"]
+    action = "replace"
+    target_label = "component"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app"]
+    action = "replace"
+    target_label = "app"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance"]
+    action = "replace"
+    target_label = "instance"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+    action = "replace"
+    target_label = "name"
+  }
+}
+
+//scrape pods that have annotations for scrape
+prometheus.scrape "pods" {
+  clustering {
+    enabled = true
+  }
+  scrape_interval = "60s"
+  targets    = discovery.relabel.pods.output
+  forward_to = [prometheus.relabel.metrics_service.receiver]
+}
+
+//scrape endpoints based of serviceMonitors
+prometheus.operator.servicemonitors "servicemonitors" {
+    forward_to = [prometheus.relabel.metrics_service.receiver]
+    clustering {
+        enabled = true
+    }
+    selector {
+        match_expression {
+            key = "cloud.ukg.int/alloy-scrape"
+            operator = "In"
+            values = ["true"]
+        }
+    }
+}
+
+//add datacenter, cluster & relabel otel labels to keep consistent
+prometheus.relabel "metrics_service" {
+  rule {
+    source_labels = ["__name__"]
+    // limiting the istio proxy metrics that are kept
+    regex           = "envoy_listner*|envoy_metric*|envoy_server*|envoy_wasm*|envoy_cluster_membership*|envoy_cluster_original*|envoy_cluster_update*|envoy_cluster_lb*|envoy_cluster_manager*|envoy_cluster_internal*|envoy_cluster_max*|envoy_cluster_membership*|envoy_cluster_http2*|envoy_cluster_default*|envoy_cluster_circuit*|envoy_cluster_bind*|envoy_cluster_assignment*|envoy_cluster_upstream_flow*|envoy_cluster_upstream_internal*|envoy_cluster_upstream_rq*|envoy_cluster_version|istio_agent*"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["datacenter"]
+    regex = ""
+    replacement = env("DATACENTER")
+    target_label = "datacenter"
+  }
+  rule {
+    source_labels = ["cluster"]
+    regex = ""
+    replacement = env("CLUSTER_NAME")
+    target_label = "cluster"
+  }
+  rule {
+    source_labels = ["cluster_name"]
+    regex = ""
+    replacement = env("CLUSTER_NAME")
+    target_label = "cluster_name"
+  }
+  rule {
+    regex         = "uid|machine_id|system_uuid"
+    action        = "labeldrop"
+  }
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+//write prometheus metrics
+prometheus.remote_write "default" {
+  endpoint {
+    url = env("PROM_ENDPOINT")
+    tls_config {
+        insecure_skip_verify = true
+    }
+    basic_auth {
+        username = env("PROM_USER")
+        password = env("PROM_SECRET")
+    }
+  }
+}
