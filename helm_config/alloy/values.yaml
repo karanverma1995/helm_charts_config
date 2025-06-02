@@ -1,0 +1,93 @@
+# strat-api values
+prometheus_user: ""
+prometheus_endpoint: ""
+prometheus_secret: ""
+cluster_name: ""
+datacenter: ""
+# alloy chart value overrides
+fullnameOverride: "alloy-overlay"
+alloy:
+  global:
+    image:
+      registry: "us-docker.pkg.dev/d-ulti-cs-cloudengine-9561"
+      imagePullPolicy: "Always"
+  alloy:
+    stabilityLevel: "experimental"
+    clustering:
+      enabled: true
+    configMap:
+      create: false
+      key: config.alloy
+    envFrom:
+      - configMapRef:
+          name: alloy-overlay-connection
+      - secretRef:
+          name: alloy-overlay-connection-secret
+    extraEnv:
+      - name: HOSTIP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.hostIP
+      - name: KUBELET_SERVICE_PORT
+        value: "10250"
+    resources:
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+  # docker.io/grafana/alloy:v1.0.0
+  image:
+    tag: "v1.5.0"
+    repository: "strat/alloy"
+  configReloader:
+    # ghcr.io/jimmidyson/configmap-reload:v0.13.0
+    image:
+      tag: "v0.13.0"
+      repository: "strat/configmap-reload"
+  # stop deployment of vendor chart serviceaccount & rbac
+  serviceAccount:
+    create: false
+    name: alloy-overlay
+  controller:
+    type: "deployment"
+    replicas: 5
+  rbac:
+    create: false
+kubeMetrics:
+  controller:
+    replicas: 5
+  configMap:
+    create: false
+    key: kubemetrics.alloy
+  envFrom:
+    - configMapRef:
+        name: alloy-overlay-connection
+    - secretRef:
+        name: alloy-overlay-connection-secret
+  resources:
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+    requests:
+      cpu: ".5"
+      memory: "512Mi"
+otlpMetrics:
+  controller:
+    replicas: 5
+  configMap:
+    create: false
+    key: otlp.alloy
+  envFrom:
+    - configMapRef:
+        name: alloy-overlay-connection
+    - secretRef:
+        name: alloy-overlay-connection-secret
+  resources:
+    limits:
+      cpu: "3"
+      memory: "12Gi"
+    requests:
+      cpu: ".5"
+      memory: "512Mi"
