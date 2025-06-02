@@ -1,0 +1,10 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ .Values.fullnameOverride }}-connection
+  labels:
+data:
+  PROM_USER: "{{ .Values.prometheus_user }}"
+  PROM_ENDPOINT: "{{ .Values.prometheus_endpoint }}"
+  CLUSTER_NAME: "{{ .Values.cluster_name }}"
+  DATACENTER: "{{ .Values.datacenter }}"

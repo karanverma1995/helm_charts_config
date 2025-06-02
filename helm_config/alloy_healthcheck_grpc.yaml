@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.fullnameOverride }}-otlp-test-grpc
+  labels:
+    app: {{ .Values.fullnameOverride }}-otlp-test-grpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.fullnameOverride }}-otlp-test-grpc
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.fullnameOverride }}-otlp-test-grpc
+    spec:
+      containers:
+      - name: {{ .Values.fullnameOverride }}-otlp-test
+        image: {{ .Values.alloy.global.image.registry }}/strat/otlp-metrics-healthcheck:1.0.0
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "5m"
+          limits:
+            memory: "64Mi"
+            cpu: "10m"
+        env:
+        - name: OTLP_TYPE
+          value: "grpc"
+        - name: PYTHONUNBUFFERED
+          value: "1"

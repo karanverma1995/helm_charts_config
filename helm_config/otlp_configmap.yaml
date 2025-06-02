@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fullnameOverride }}-otlp
+  labels:
+data:
+  otlp.alloy: |- {{- .Files.Get "config/otlp.alloy" | trim | nindent 4 }}

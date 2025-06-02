@@ -1,0 +1,81 @@
+---
+apiVersion: autoscaling/{{ template "hpaversion" . }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.fullnameOverride }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.fullnameOverride }}
+  minReplicas: 5
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: autoscaling/{{ template "hpaversion" . }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.fullnameOverride }}-kube-metrics
+  labels:
+    app.kubernetes.io/name: {{ .Values.fullnameOverride }}-kube-metrics
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.fullnameOverride }}-kube-metrics
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: autoscaling/{{ template "hpaversion" . }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.fullnameOverride }}-otlp
+  labels:
+    app.kubernetes.io/name: {{ .Values.fullnameOverride }}-otlp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.fullnameOverride }}-otlp
+  minReplicas: 5
+  maxReplicas: 45
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80

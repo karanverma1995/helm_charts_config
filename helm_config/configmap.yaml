@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  labels:
+data:
+  config.alloy: |- {{- .Files.Get "config/config.alloy" | trim | nindent 4 }}

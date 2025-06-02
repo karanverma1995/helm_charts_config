@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "alloy.name" . }}
+    chart: {{ template "alloy.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+secrets:
+- name: {{ .Values.fullnameOverride }}-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.fullnameOverride }}-token
+  annotations:
+    kubernetes.io/service-account.name: {{ .Values.fullnameOverride }}
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  labels:
+    app: {{ template "alloy.name" . }}
+    chart: {{ template "alloy.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+# for kubernetes plugin
+- apiGroups:
+  - ''
+  resources:
+  - nodes/stats
+  - nodes/proxy
+  - nodes/metrics
+  verbs:
+  - get
+# for kube_inventory plugin
+- apiGroups:
+  - ''
+  - discovery.k8s.io
+  - networking.k8s.io
+  resources:
+  - pods
+  - nodes
+  - persistentvolumes
+  - persistentvolumeclaims
+  - services
+  - endpoints
+  - endpointslices
+  - ingresses
+  - nodes/proxy
+  - nodes/metrics
+  verbs:
+  - list
+  - get
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - daemonsets
+  verbs:
+  - list
+  - get
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - list
+  - get
+# for prometheus plugin
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - namespaces
+  verbs:
+  - watch
+  - get
+  - list
+- apiGroups:
+  - "monitoring.grafana.com"
+  resources:
+  - podlogs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: ["monitoring.coreos.com"]
+  resources:
+  - prometheusrules
+  verbs:
+  - get
+  - list
+  - watch
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+- apiGroups: ["monitoring.coreos.com"]
+  resources:
+    - podmonitors
+    - servicemonitors
+    - probes
+  verbs:
+    - get
+    - list
+    - watch
+# Rules which allow eventhandler to work.
+- apiGroups:
+  - ""
+  resources:
+    - events
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+# needed for otelcol.processor.k8sattributes
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  labels:
+    app: {{ template "alloy.name" . }}
+    chart: {{ template "alloy.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.fullnameOverride }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.fullnameOverride }}
+  namespace: {{ .Release.Namespace }}

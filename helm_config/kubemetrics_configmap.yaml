@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fullnameOverride }}-kube-metrics
+  labels:
+data:
+  kubemetrics.alloy: |- {{- .Files.Get "config/kubemetrics.alloy" | trim | nindent 4 }}

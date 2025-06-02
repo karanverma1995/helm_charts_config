@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.fullnameOverride }}-otlp
+  labels:
+    app: {{ .Values.fullnameOverride }}-otlp
+    app.kubernetes.io/name: alloy
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "12347"
+    prometheus.io/metrics: metrics
+    prometheus.io/scheme: http
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.fullnameOverride }}-otlp
+  replicas: {{ .Values.otlpMetrics.controller.replicas }}
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.fullnameOverride }}-otlp
+        app.kubernetes.io/name: alloy
+    spec:
+      containers:
+      - args:
+        - run
+        - /etc/alloy/{{ .Values.otlpMetrics.configMap.key }}
+        - --storage.path=/tmp/alloy
+        - --server.http.listen-addr=0.0.0.0:12347
+        - --server.http.ui-path-prefix=/
+        - --stability.level=generally-available
+        - --cluster.enabled=true
+        - --cluster.join-addresses={{ .Values.fullnameOverride }}-otlp-cluster
+        - --disable-reporting
+        env:
+        - name: ALLOY_DEPLOY_MODE
+          value: helm
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: HOSTIP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: KUBELET_SERVICE_PORT
+          value: "10250"
+        envFrom:
+        {{- toYaml .Values.otlpMetrics.envFrom | nindent 8 }}
+        image: "{{ .Values.alloy.global.image.registry }}/{{ .Values.alloy.image.repository }}:{{ .Values.alloy.image.tag }}"
+        imagePullPolicy: "Always"
+        name: alloy
+        volumeMounts:
+        - mountPath: /etc/alloy
+          name: config
+        ports:
+        - containerPort: 12347
+          name: http-metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /-/ready
+            port: 12347
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          {{ toYaml .Values.otlpMetrics.resources | nindent 10 }}
+      - args:
+        - --volume-dir=/etc/alloy
+        - --webhook-url=http://localhost:12347/-/reload
+        image: "{{ .Values.alloy.global.image.registry }}/{{ .Values.alloy.configReloader.image.repository }}:{{ .Values.alloy.configReloader.image.tag }}"
+        imagePullPolicy: "Always"
+        name: config-reloader
+        resources:
+          requests:
+            cpu: 1m
+            memory: 5Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/alloy
+          name: config
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccountName: {{ .Values.fullnameOverride }}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: {{ .Values.fullnameOverride }}-otlp
+        name: config
