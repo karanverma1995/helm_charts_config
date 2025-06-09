@@ -1,0 +1,18 @@
+FROM docker.mia.ulti.io/alpine:latest
+
+ARG HELM_VERSION=v3.3.4
+ARG KUBECTL_VERSION=v1.16.0
+ARG SAFE_VERSION=v0.9.9
+
+RUN apk add --no-cache curl bash && \
+  curl -sLo helm.tgz \
+  https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz && \
+  tar xzf helm.tgz --strip-components=1 -C /usr/local/bin && \
+  curl -sLO \
+  https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
+  chmod +x kubectl && \
+  mv kubectl /usr/local/bin/kubectl && \
+  curl -sLo safe \
+  https://github.com/starkandwayne/safe/releases/download/${SAFE_VERSION}/safe-linux-amd64 && \
+  chmod +x safe && \
+  mv safe /usr/local/bin/safe
