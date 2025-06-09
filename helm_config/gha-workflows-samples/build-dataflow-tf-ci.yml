@@ -1,0 +1,25 @@
+name: Build Dataflow Terraform
+on:
+  workflow_dispatch: {}
+  pull_request:
+    types: [opened,synchronize,reopened]
+    paths:
+      - 'deploy/pfab-strm-dataflow-terraform/**'
+      - '.github/workflows/build-dataflow-terraform-ci.yml'
+concurrency:
+  group: 'build-dataflow-terraform-ci-${{ github.ref }}'
+  cancel-in-progress: true
+jobs:
+  call-terraform-build:
+    uses: UKGEpic/de-tool-terraform-modules/.github/workflows/terraform-ci-workflow-tmpl-GARM.yml@main
+    secrets: inherit # pass all secrets to the called workflow
+    with:
+      projectdir: 'deploy/pfab-strm-dataflow-terraform/src/main/terraform'
+      projectname: 'pfab-strm-dataflow-terraform'
+      wiz_policy_name: 'Default IaC policy'      
+  build:
+    needs: call-terraform-build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: PR Required Step
+        run: echo "PR Required Step Success"
