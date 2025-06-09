@@ -1,0 +1,176 @@
+name: Build Dataflow Image 
+on:
+  workflow_dispatch: {}
+  pull_request:
+    types: [ opened,synchronize,reopened ]
+    paths: 
+      - 'peoplefabric-streaming-pipeline/**'
+      - 'psr/**'
+      - 'system-test/**'
+      - '.github/workflows/build-peoplefabric-streaming-ingestion-ci-GARM.yml'
+      - '.run/**'
+    branches:
+      - '**'
+  push: 
+    branches:
+      - 'develop'
+      - 'main'
+concurrency:
+  group: 'build-peoplefabric-streaming-ingestion-ci-GARM-${{ github.ref }}'
+  cancel-in-progress: true
+env:
+  ARTIFACTORY_HOST: ukgartifactory.pe.jfrog.io
+  PROJECT_NAME: de-app-peoplefabric-streaming-pipeline
+  GITHUB_SHA: ${{ github.sha }}
+  GHA_SCRIPT_VER: 1.0.5
+  PIPCONFIG_DIR: '${{ github.workspace }}/.github/release/.pip'
+  GITHUB_WORKSPACE: ${{ github.workspace }}
+  FAT_JAR: "peoplefabric-streaming-pipeline/build/libs/peoplefabric-streaming-pipeline.jar"
+  DEBUG_JAR: "false"
+jobs:
+  build:
+    runs-on:
+      - garm
+      - us-east4
+      - container
+      - linux
+      - large
+      - mega
+    env:
+      IS_PIPELINE: 'true'
+      TEST_SVC_KEY: '${{ secrets.TEST_SVC_KEY }}'
+      GOOGLE_APPLICATION_CREDENTIALS_ENCODING_KEY: "NONE"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update the Gradle Wrapper
+        run: ./gradlew wrapper && ./gradlew --version
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'zulu'
+
+      - name: Package 
+        run: | 
+          ./gradlew assemble 
+
+      - name: Debug Jar
+        if: ${{ env.DEBUG_JAR == 'true' }}
+        run: |
+              ls peoplefabric-streaming-pipeline/build/libs && \
+              echo "Fat jar contains" \
+                    $(jar -tf ${{ env.FAT_JAR }} | wc -l) \
+                  "files and is" $(stat -c%s ${{ env.FAT_JAR }}) "bytes" \
+                  "and has a SHA256 of " $(cat ${{ env.FAT_JAR }} | sha256sum)
+
+      - name: Copy Fat Jar
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir -p peoplefabric-streaming-pipeline/jar/
+          cp ${{ env.FAT_JAR }} peoplefabric-streaming-pipeline/jar/
+
+      - name: Run Tests
+        run: |
+          ./gradlew :peoplefabric-streaming-pipeline:test \
+            -Dtest.small=true \
+            -Dtest.outputDir=test-output \
+            -Dtest.troveProduct=omni-analytics \
+            -Dtest.troveTestrailProjectId=116 \
+            -Dtest.troveTestrailSuiteId=3526 \
+            -Dtest.troveBuildNumber=1.0.0 \
+            -Dtest.troveResultsDir=.
+
+      - name: Upload Build Artifacts    
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: ${{ github.workspace }}/peoplefabric-streaming-pipeline/jar/
+          compression-level: 0
+
+      - name: sonar
+        uses: UKGEPIC/devx-quality-gha-lib/actions/sonar-scan@main
+        with:
+         sonar-token: ${{ secrets.SONAR_TOKEN }}
+         args: >
+           -Dsonar.projectKey=omni-analytics:de-app-peoplefabric-streaming-pipeline
+           -Dsonar.coverage.jacoco.xmlReportPaths=peoplefabric-streaming-pipeline/build/reports/jacoco/test/jacocoTestReport.xml
+           -Dsonar.verbose=true
+        continue-on-error: true
+      
+  publish-image:
+    runs-on:
+      - garm
+      - us-east4
+      - vm
+      - linux
+      - medium
+      - mega 
+    needs: build
+    env:
+      ARTIFACTORY_REPO: ''
+      BRANCH: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: peoplefabric-streaming-pipeline/build/libs/
+
+      - name: Configure pip to use Artifactory
+        run: |
+          mkdir -p ~/.pip
+          cp ${{ env.PIPCONFIG_DIR }}/pip.config ~/.pip/pip.conf
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade gha-scripts==${{ env.GHA_SCRIPT_VER }}
+
+      - name: Set Branch Name
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          gha-workflow-steps setup_environment --set_env=branch
+
+      - name: Set Artifactory Repository
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: gha-workflow-steps setup_environment --set_env=artifactory  
+
+      - name: build-docker-image
+        run: |-
+          pwd #this is where docker is running from. Use local docker daemon
+          DOCKER_HOST=unix:///var/run/docker.sock \
+          docker build --build-arg BRANCH=${{ env.BRANCH }} -t ${{env.ARTIFACTORY_HOST}}/${{ env.ARTIFACTORY_REPO }}/${{ env.PROJECT_NAME }}-${{ env.BRANCH }}:latest -t ${{ env.ARTIFACTORY_HOST}}/${{ env.ARTIFACTORY_REPO }}/${{ env.PROJECT_NAME }}-${{ env.BRANCH }}:${{ github.sha }} -f ./peoplefabric-streaming-pipeline/Dockerfile . 
+      
+      - name: Authenticate to Wiz
+        shell: bash
+        env: 
+          WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
+          WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
+        run: wizcli auth --id $WIZ_CLIENT_ID --secret $WIZ_CLIENT_SECRET
+      
+      - name: scan-image
+        run: wizcli docker scan --image $TAG --policy Flex_Data_Platform_Vulnerabilities_Policy
+        env:
+            TAG: ${{env.ARTIFACTORY_HOST}}/${{ env.ARTIFACTORY_REPO }}/${{ env.PROJECT_NAME }}-${{ env.BRANCH }}:latest
+        #continue-on-error: true
+      
+      - name: publish-docker-image
+        run: |-
+          echo "${{ secrets.ARTIFACTORY_PASSWORD }}" | docker login ${{env.ARTIFACTORY_HOST}} -u omni --password-stdin
+          docker push ${{env.ARTIFACTORY_HOST}}/${{ env.ARTIFACTORY_REPO }}/${{ env.PROJECT_NAME }}-${{ env.BRANCH }}
+          docker push ${{env.ARTIFACTORY_HOST}}/${{ env.ARTIFACTORY_REPO }}/${{ env.PROJECT_NAME }}-${{ env.BRANCH }}:${{ github.sha }}
+
+      - name: Write to Github Summary
+        run: |
+          gha-workflow-summary write_to_github_summary \
+            --message="Build Image Commit: ${{env.GITHUB_SHA}}" \
+      
