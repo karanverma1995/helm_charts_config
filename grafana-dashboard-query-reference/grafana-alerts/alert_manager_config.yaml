@@ -1,0 +1,740 @@
+global:
+    http_config:
+        enable_http2: true
+        follow_redirects: true
+        proxy_url: null
+        tls_config:
+            insecure_skip_verify: false
+    opsgenie_api_url: https://api.opsgenie.com/
+    pagerduty_url: https://events.pagerduty.com/v2/enqueue
+    resolve_timeout: 5m
+    smtp_from: noreply@grafana.net
+    smtp_hello: localhost
+    smtp_smarthost: smtprelay:2525
+    telegram_api_url: https://api.telegram.org
+    victorops_api_url: https://alert.victorops.com/integrations/generic/20131114/alert/
+    wechat_api_url: https://qyapi.weixin.qq.com/cgi-bin/
+receivers:
+    - name: AuthZ - HCM Audit Framework PagerDuty
+      pagerduty_configs:
+        - routing_key: 4e7cb8d4afff4007d0c7e2ed34ef20ba
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    - name: UKG Authn Pagerduty and Email
+      pagerduty_configs:
+        - routing_key: 6feb1766f1354707d0ae82301dc17e0b
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: false
+          to: IAM-UKGAuthN@ukg.com
+    - name: default
+    # IAM - UKG AuthN Receivers Starts
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: anurag.srivastav@ukg.com, IAM-UKGAuthN@ukg.com
+      name: Mail - UKG AuthN
+    - name: Pagerduty - UKG AuthN
+      pagerduty_configs:
+        - routing_key: 6feb1766f1354707d0ae82301dc17e0b
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: anurag.srivastav@ukg.com
+    # IAM - UKG AuthN Receivers Ends
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: shailendra.negi@ukg.com, sunil.maurya@ukg.com, jose.poncediaz@ukg.com, rishabh.a.srivastava@ukg.com, gaurav.g.singh@ukg.com, ayushi.seth@ukg.com, satyam.pandey@ukg.com, gauravgupta@ukg.com, brian.sanchez@ukg.com
+      name: UKG Conversational Reporting - Mail
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: nageshwar.saini@ukg.com, shailendra.gupta@ukg.com, chirag@ukg.com , himani.singh@ukg.com, monica.saini@ukg.com
+      name: Reporting Hub - Mail
+      # Compensation_management Receiver
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: uday.jamwal@ukg.com,gaurav.srivastava@ukg.com, gaurav.goyal@ukg.com, keshav.kishor@ukg.com, gaurav.bulchandani@ukg.com, ashneetkaur.kalra@ukg.com, mohd.farhan@ukg.com
+      name: comp
+    #  Pro people P2 Receiver
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: uday.jamwal@ukg.com, keshav.kishor@ukg.com, gaurav.bulchandani@ukg.com, ashneetkaur.kalra@ukg.com, alfredo.nunez@ukg.com, Anmol.Vijwani@ukg.com, anthony.gonzalez@ukg.com, mohd.farhan@ukg.com, ramone.lynch@ukg.com, Sriharsha.Lingapalem@ukg.com, vansioung.ngyantun@ukg.com, anurag.srivastav@ukg.com, Ashish.Asati@ukg.com, eugene.kravets@ukg.com, gurucharan.nain@ukg.com, karan.verma@ukg.com, monica.saini@ukg.com, mukul.k.kumar@ukg.com, pahuni.saharan@ukg.com, robert.culver@ukg.com, mukul.kumar@ukg.com, ankit.chaitanya@ukg.com, sachin.goyal@ukg.com, satyanshu.gupta@ukg.com
+      name: pro_people
+    #  Pro people P1 Receiver
+    - name: pro_people_p1
+      pagerduty_configs:
+        - routing_key: d85bec46bcb44d0ed03a514fbf593fb4
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    #  Pro Recruiting P2 Receiver
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: mrigank.bhaskar@ukg.com, rinues.nunezruiz@ukg.com, jeffrey.baldwin@ukg.com, justin.ament@ukg.com, recruiting14alerts@ultimatesoftware.com
+      name: pro_recruiting
+    #  Pro Recruiting P1 Receiver
+    - name: pro_recruiting_p1
+      pagerduty_configs:
+        - routing_key: a9f533aff48f490ec0d8a704db784917
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue      
+    #  Pro People HCM Service PD Receiver
+    - name: pro_people_hcmservice
+      pagerduty_configs:
+        - routing_key: ebb176352b014103c052bd85001d8f15
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    #  Pro People HCM Service Email Receiver
+    - name: pro_people_hcmservice_email
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: HCMServices@ukg.com
+      #Trox Alerts 
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: TRoxTeam@ukg.com
+      name: TroxAlerts
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: harsh.lakhotia@ukg.com
+      name: ProAlert_Test
+    # People Fabric- Platform Service Recievers
+    - name: Pagerduty - Platform Service People_Fabric
+      pagerduty_configs:
+        - routing_key: 32fb7ef7a5994a0bc0210d148054c176
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    # PaymentServices - EventOrchestration pagerduty receiver
+    - name: PaymentService-PagerDuty-EventOrchestration
+      pagerduty_configs:
+        - routing_key: R02JAKRH079RQNVPL4Q1K3WAF1N2743H
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    # TRS Receiver
+    - email_configs:
+      - html: '{{ template "email.default.html" . }}'
+        require_tls: false
+        send_resolved: true
+        to: EngFalconNoidaTenantManagement@ukg.com
+      name: TRS Prod
+     # HAapi Receiver
+    - name: HaAPI
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: uday.jamwal@ukg.com
+    # PRO-SRE Receiver
+    - name: prosre
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: Pro-SRE@ukg.com
+    # Suite Provisioning Receiver
+    - name: Suite Provisioning prod
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: SuiteProvisioning@ukg.com
+    - name: CPK-Mail
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: krishna.bhargav@ukg.com
+    # Ihub Receiver
+    - name: noc-ihub
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: noc-ihub@ukg.pagerduty.com
+    - name: engfalconihubextnoida
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: engfalconihubextnoida@ukg.com
+    - msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/b7a29966-caf6-44b1-a479-f9a93a93b4a6@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/682476d5504944ed9f279d24a3932752/4b598626-3969-4652-b005-9d1151b0d969
+          send_resolved: true
+      name: CMP
+    - name: ihubextintmonitoring
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: ihubextintmonitoring@ukg.com
+    - name: P1-noc-ihub+engfalconihubextnoida
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: noc-ihub@ukg.pagerduty.com,engfalconihubextnoida,@ukg.com
+    - name: clouddba_pagerduty
+      pagerduty_configs:
+        - routing_key: R0295OFXXH7M1TRVGMUPPMU5Y0NBDS1U
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+      #REVEIVER FOR Informatica starts here
+    - name: informatica_infrastructure_monitoring
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: giovani.batoni@ukg.com, richard.gray@ukg.com, kritika.chaudhary@ukg.com, brian.mitchell@ukg.com, deepak.pundir@ukg.com, prashant.bisht@ukg.com
+    - msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/fd6ea91e-1011-432c-a69e-3df190c4b6dd@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/89144f5e5e6c4033b6f85a0cd10e5027/86d99f2e-81a4-4127-8a87-8f0fd67be409
+          send_resolved: true
+      # RECEIVER FOR Informatica ends here
+      name: infra-prod
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: false
+          to: eran.sery@ukg.com
+      name: webhooks-prod
+      #REVEIVER FOR MFT (UDES) starts here
+    - name: MFT-UDES-RECEIVER-PD
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: noc---udes-email.vefabyea@ukg.pagerduty.com
+    - name: MFT-UDES-RECEIVER-Webhook
+      msteams_configs:
+        - webhook_url: https://prod-154.westus.logic.azure.com:443/workflows/d396ec818e2b483792f90c26deaa005a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=eftAGSIqXz5H7VOSQlc0teeVg8DUo6CfQavq3LDeALA
+          send_resolved: true
+    - name: MFT-UDES-RECEIVER-EMAIL
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: mftengineering@ukg.com, udesadmins@ukg.com
+      # RECEIVER FOR MFT (UDES) ends here
+      # API-Gateway-Prod receiver
+    - name: Pagerduty-API-Gateway-Prod
+      pagerduty_configs:
+        - routing_key: 6379e13527304306d09689f36bf70c86
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    - name: Mail-API-Gateway-Prod
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: APIGEETeam@ukg.com, anmol.vijwani@ukg.com
+    # Pro-TMS Receiver
+    - name: Mail-PTMS
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: anurag.srivastav@ukg.com, vishva.singh@ukg.com, ankit.mehra@ukg.com, vijay.roy@ukg.com, akshit.rawat@ukg.com, arpit.saini@ukg.com, rahulchauhan@ukg.com, nikhil.gupta@ukg.com, nikhil.b.sharma@ukg.com, sourav.gupta@ukg.com, tapan.garg@ukg.com, rahul.d.kumar@ukg.com, shubhi.vashishtha@ukg.com, kartik.chaudhary@ukg.com, antima.agrawal@ukg.com
+    - name: Pagerduty-PTMS
+      pagerduty_configs:
+        - routing_key: 546d26354de84605c08d792e7c124b6b
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+     # UTP Receiver
+    - name: Mail-UTP
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: anurag.srivastav@ukg.com, milan.sharma@ukg.com, ankit.mehra@ukg.com, deepak.pundhir@ukg.com, sandeep.agrrawal@ukg.com, vishwa.singh@ukg.com, khajan.singh@ukg.com, vaishali.v.sharma@ukg.com
+    - name: Pagerduty-UTP
+      pagerduty_configs:
+        - routing_key: 7a3c5669618a4f05c099b976aa64da36
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    - name: Mail-UKG-Webhooks
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: ashokkumar.vaid@ukg.com, varun.agarwal@ukg.com,Akansha.B.Sharma@ukg.com,navdeep.s.singh@ukg.com,muskan.aggarwal@ukg.com          
+  # Flex Flow Receiver
+    - name: Flex-Flow-Email
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: flexflowengineeringsupport@ukg.com
+    - name: Flex-Flow-Dev-Email
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: vaibhav.v.verma@ukg.com, shashi.singh@ukg.com, rohitsubramaniyam.remella@ukg.com, dipesh.bist@ukg.com, Vishal.Rajak@ukg.com, anunay.anand@ukg.com, jaya.bajpai@ukg.com
+    - name: Flex-Flow-Teams-Channel
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/fe37ca95-d6bb-4fc8-b3a3-027a00d76763@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/18c650528bd24155b51f3f7ce5cce1b8/7d05a213-e572-485e-abcb-f2d56e1d68e4/V2nLyvBfNze44vyLK3b1oNjbsHT-VSw4_zkNvsEDiFkYA1
+          send_resolved: true
+    - name: Alert HRSD SRE
+      pagerduty_configs:
+      - routing_key: 06efd6b5c8054f16ac828cfc0596e906
+        send_resolved: true
+        url: https://events.pagerduty.com/v2/enqueue
+    - email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: false
+          to: EPIC-SRE-HRSD@ukg.com
+      name: AlertHrsdSreEmail
+    - name: ist_prod
+      msteams_configs:
+        - webhook_url: https://teams.microsoft.com/l/channel/19%3Aa0abf822fd6d4e879acc4957a35b9d33%40thread.tacv2/TIP%20Grafana%20Messaging?groupId=a6ad3930-fad5-477b-8b82-91538104d778
+          send_resolved: true
+    #UKG reporting hub notification channel      
+    - name: UKG_Reporting_hub_PD_mail
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: reporting-hub-app@ukg.pagerduty.com, ReportingHubApp@ukg.com, monica.saini@ukg.com, harish.minhas@ukg.com, sonakshi.gupta@ukg.com
+  # Data Dictionary Denodo Service  
+    - email_configs:
+         - html: '{{ template "email.message" . }}'
+           require_tls: false
+           send_resolved: true
+           to: noc---data-dictionary--denodo--email.tpldmk3b@ukg.pagerduty.com, ritesh.singh@ukg.com, mudit.srivastava@ukg.com, pddindia@ukg.com, vaibhav.k.gupta@ukg.com, sameer.s.sharma@ukg.com, manohar.arora@ukg.com, siddharth.sharma@ukg.com, prateek.pandey@ukg.com, mansi.bhandari@ukg.com, swati.singh@ukg.com, tanish.garg@ukg.com, mayank.deshawal@ukg.com, nahid.akhtar@ukg.com, khushi.gupta@ukg.com
+      name: Pagerduty_Denodo_Prod_Critical_ruleset
+    - email_configs:
+         - html: '{{ template "email.message" . }}'
+           require_tls: false
+           send_resolved: true
+           to: pddindia@ukg.com, ritesh.singh@ukg.com, mudit.srivastava@ukg.com, vaibhav.k.gupta@ukg.com, sameer.s.sharma@ukg.com, manohar.arora@ukg.com, siddharth.sharma@ukg.com, prateek.pandey@ukg.com, mansi.bhandari@ukg.com, swati.singh@ukg.com, tanish.garg@ukg.com, mayank.deshawal@ukg.com, nahid.akhtar@ukg.com, khushi.gupta@ukg.com
+      name: Pagerduty_Denodo_Prod_Warning_ruleset           
+    # Pro Launch Receivers
+    - name: Pro-Launch-Email
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: launchcu-dev@ukg.com
+    - name: Pro-Launch-Pagerduty
+      pagerduty_configs:
+      - routing_key: 3a8c1a1901424600c044439db50832b4
+        send_resolved: true
+        url: https://events.pagerduty.com/v2/enqueue
+    - name: Pro-Launch-Teams
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/e4b0b392-b569-47d8-8793-b6b20efc46d4@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/d59e14da6f4042659a53024e0c0533e6/862353e0-1998-472a-a6b9-e132d744a0c3/V2KqSc4OVw3DQlTpvJkbi-LY0vpvh2CESSLz3K_j0B4_w1
+          send_resolved: true
+  # HCM Core Eventing
+    - name: Eventing - Pager Duty
+      pagerduty_configs:
+        - routing_key: afa504bf6eed450ec0a3afd4a05357d3
+          send_resolved: true
+          url: https://events.pagerduty.com/v2/enqueue
+    - name: Eventing UAT - MS Teams
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/ada9c34f-ce1a-4011-9d9b-8817806a116b@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/24aeca8309814fb9a0cb255c02c4921e/0662049e-6d7f-4243-9ea7-48fcf9b630b7
+          send_resolved: true
+    - name: Eventing Prod - MS Teams
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/ada9c34f-ce1a-4011-9d9b-8817806a116b@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/aed82a523bdc4fef9a325a1b448068e6/0662049e-6d7f-4243-9ea7-48fcf9b630b7
+          send_resolved: true
+    # Suite Busisness Structure
+    - name: Simplified Business Structure - Pager Duty
+      pagerduty_configs:
+            - routing_key: 150323052053480ec0ad73b5a323638a
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name: GJM - Pager Duty
+      pagerduty_configs:
+            - routing_key: 83d68e6c65c04204d02f8d125ee16618
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name: OLM-WFD-PRO-Facade - Pager Duty
+      pagerduty_configs:
+            - routing_key: 8077120990794402d042b86a4ba9e2e8
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name: People Center Gateway - Pager Duty
+      pagerduty_configs:
+            - routing_key: ef81444b4c094b08d0c8208d3c0f342e
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name: SBS E2E environment - Pager Duty
+      pagerduty_configs:
+            - routing_key: 189bcdabbaf84b02c02c1644d4d4137b
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name: Alignment Page - Pager Duty
+      pagerduty_configs:
+            - routing_key: a69c2ead9bf8410dd073a71c0ab5f634
+              send_resolved: true
+              url: https://events.pagerduty.com/v2/enqueue
+    - name : Syrax Alerts - MS Teams
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/c3eccca1-77b0-43a6-8239-ab0d35ac35d6@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/fda37b0d138e48c9b590b2b28d508b16/540d227a-ade9-41ab-801a-9355bb680ade/V2grO-0l3OnkQFbjmguhdtj06wtjBWF9IwpMDvpRuPUkM1
+          send_resolved: true
+    - name: SBS High Alert - MS Teams
+      msteams_configs:
+        - webhook_url: https://prod-101.westus.logic.azure.com:443/workflows/207eeea6ab70495abef8507fb428807a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=KsoJ5j28FO8_YoI9TOaRlelUChh4vQLUa_23sSe2O1M
+          send_resolved: true
+    - name: SBS Medium Alert - Email
+      msteams_configs:
+        - webhook_url: https://kronos.webhook.office.com/webhookb2/502b997d-23b6-4c07-8ccd-608f003580a2@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/c32ddcbefbf44dd997d29c2aa2284988/08cb7a9d-f5c1-4ea1-bce5-f37344840211
+          send_resolved: true
+    - name: SBS Low Alert - Email
+      msteams_configs:
+          - webhook_url: https://kronos.webhook.office.com/webhookb2/502b997d-23b6-4c07-8ccd-608f003580a2@7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de/IncomingWebhook/02712cdaf1d540fa9b6e0e7a2f0164a7/08cb7a9d-f5c1-4ea1-bce5-f37344840211
+            send_resolved: true
+ # HRSD Alerts Receivers
+    - name: HrsdCoreAlert_Mail
+      email_configs:
+        - html: '{{ template "email.default.html" . }}'
+          require_tls: false
+          send_resolved: true
+          to: priya.singhal@ukg.com, peoplecore@Kronos.onmicrosoft.com
+    - name: HrsdCoreAlert_MS_Teams
+      msteams_configs:
+        - webhook_url: https://teams.microsoft.com/l/channel/19%3A05c0e54a329e4ef3b85d62f8a9127176%40thread.tacv2/Grafana%20Alerts?groupId=e007f1c5-f260-469b-9261-0dd61957ff46&tenantId=7b6f35d2-1f98-4e5e-82eb-e78f6ea5a1de
+          send_resolved: true
+route:
+    continue: false
+    group_by:
+        - '...'
+    matchers: []
+    mute_time_intervals: []
+    receiver: default
+    repeat_interval: 24h
+    routes:
+        # AuthZ Routes Start
+        - continue: false
+          matchers:
+            - route=hcm_security_audit_service_pagerduty
+          mute_time_intervals: []
+          receiver: AuthZ - HCM Audit Framework PagerDuty
+        # AuthZ Routes End
+      # Flex Flow Route
+        - continue: false
+          matchers:
+            - route=flex_flow_prod_route
+          mute_time_intervals: [ ]
+          receiver: Flex-Flow-Email
+        - continue: false
+          matchers:
+            - route=flex_flow_dev_route
+          mute_time_intervals: [ ]
+          receiver: Flex-Flow-Dev-Email
+        # IAM - UKG AuthN Routes Starts
+        - continue: false
+          matchers:
+            - route=iam_ukgauthn_dev
+          mute_time_intervals: []
+          receiver: Mail - UKG AuthN
+        - continue: false
+          matchers:
+            - route=iam_ukgauthn_prod
+          mute_time_intervals: []
+          receiver: Pagerduty - UKG AuthN
+        # IAM - UKG AuthN Routes Ends
+        - continue: false
+          matchers:
+            - route=UKG-Authn-Pagerduty-Mail
+          mute_time_intervals: [ ]
+          receiver: UKG Authn Pagerduty and Email
+          routes: [ ]
+        - continue: false
+          matchers:
+            - route=UKG-Conversational-Reporting-Mail
+          mute_time_intervals: [ ]
+          receiver: UKG Conversational Reporting - Mail
+          routes: [ ]
+        - continue: false
+          matchers:
+            - route= Rhub_Mail
+          mute_time_intervals: [ ]
+          receiver: Reporting Hub - Mail
+          routes: [ ]
+          #Trox ALerts
+        - continue: false
+          matchers:
+            - route=troxalerts
+          mute_time_intervals: []
+          receiver: TroxAlerts
+        - continue: false
+          matchers:
+            - route=alerttest
+          mute_time_intervals: []
+          receiver: ProAlert_Test
+        # People Fabric - Platform Service Route
+        - continue: false
+          matchers:
+            - route=PF_Platform_service_prod_PD
+          mute_time_intervals: [ ]
+          receiver: Pagerduty - Platform Service People_Fabric
+        # PaymentServices - Pager Duty Route
+        - continue: false
+          matchers:
+            - route=PS-PagerDuty
+          mute_time_intervals: [ ]
+          receiver: PaymentService-PagerDuty-EventOrchestration
+        # TRS Route
+        - continue: false
+          matchers:
+            - route=TRS_Prod
+          mute_time_intervals: []
+          receiver: TRS Prod
+        # Compensation_management Route
+        - continue: false
+          matchers:
+            - route=comp
+          mute_time_intervals: []
+          receiver: comp
+        # Pro People P2 Route
+        - continue: false
+          matchers:
+            - route=pro_people
+          mute_time_intervals: []
+          receiver: pro_people
+        # Pro People P1 Route
+        - continue: false
+          matchers:
+            - route=pro_people_p1
+          mute_time_intervals: []
+          receiver: pro_people_p1
+        # Pro Recruiting P2 Route
+        - continue: false
+          matchers:
+            - route=pro_recruiting
+          mute_time_intervals: []
+          receiver: pro_recruiting
+        # Pro Recruiting P1 Route
+        - continue: false
+          matchers:
+            - route=pro_recruiting_p1
+          mute_time_intervals: []
+          receiver: pro_recruiting_p1  
+        # Pro People HCM Service Route
+        - continue: false
+          matchers:
+            - route=pro_people_hcmservice
+          mute_time_intervals: []
+          receiver: pro_people_hcmservice
+        # Suite Provisioning Route
+        - continue: false
+          matchers:
+            - route=Suite-provisioning
+          mute_time_intervals: [ ]
+          receiver: Suite Provisioning prod
+        # Pro-SRE Prod Route
+        - continue: false
+          matchers:
+            - route=prosre
+          mute_time_intervals: [ ]
+          receiver: prosre
+        # HAapi Route
+        - continue: false
+          matchers:
+            - route=HaAPI
+          mute_time_intervals: []
+          receiver: HaAPI
+        - continue: false
+          matchers:
+            - route=CPK-Mail
+          mute_time_intervals: [ ]
+          receiver: CPK-Mail
+        # Ihub Route
+        - continue: false
+          matchers:
+            - route=noc-ihub
+          mute_time_intervals: [ ]
+          receiver: noc-ihub
+        - continue: false
+          matchers:
+            - route=engfalconihubextnoida
+          mute_time_intervals: [ ]
+          receiver: engfalconihubextnoida
+        - continue: false
+          matchers:
+            - route=ihubextintmonitoring
+          mute_time_intervals: [ ]
+          receiver: ihubextintmonitoring
+        - continue: false
+          matchers:
+            - route=P1-noc-ihub+engfalconihubextnoida
+          mute_time_intervals: [ ]
+          receiver: P1-noc-ihub+engfalconihubextnoida
+        - continue: false
+          matchers:
+            - route=cloud_dba_pagerduty
+          mute_time_intervals: [ ]
+          receiver: clouddba_pagerduty
+        - continue: false
+          matchers:
+            - route=CMP
+          mute_time_intervals: []
+          receiver: CMP
+        #Route Informatica starts here
+        - continue: false
+          matchers:
+            - route=informatica_infrastructure_monitoring
+          mute_time_intervals: [ ]
+          receiver: informatica_infrastructure_monitoring
+          repeat_interval: 120m
+        - continue: false
+          matchers:
+            - route=webhooks_prod
+          mute_time_intervals: []
+          receiver: webhooks-prod
+          #ROUTE FOR MFT (UDES) starts here
+        - continue: false
+          matchers:
+            - route=mft-udes-route-pd
+          mute_time_intervals: []
+          receiver: MFT-UDES-RECEIVER-PD
+        - continue: false
+          matchers:
+            - route=mft-udes-route-webhook
+          mute_time_intervals: []
+          receiver: MFT-UDES-RECEIVER-Webhook
+        - continue: false
+          matchers:
+            - route=mft-udes-route-email
+          mute_time_intervals: []
+          receiver: MFT-UDES-RECEIVER-EMAIL
+          #ROUTE FOR MFT (UDES) ends here
+          # API - Gateway Prod Routes Start test
+        - continue: false
+          matchers:
+            - route=apigateway_gcp_prod_mail
+          mute_time_intervals: []
+          receiver: Mail-API-Gateway-Prod
+        - continue: false
+          matchers:
+            - route=apigateway_gcp_prod_pd
+          mute_time_intervals: []
+          receiver: Pagerduty-API-Gateway-Prod
+          # API - GatewayProd Routes Ends
+        # Pro-TMS Routes
+        - continue: false
+          matchers:
+            - route=pro_tms_mail
+          mute_time_intervals: []
+          receiver: Mail-PTMS
+        - continue: false
+          matchers:
+            - route=pro_tms_pagerduty
+          mute_time_intervals: []
+          receiver: Pagerduty-PTMS
+      # UKG Webhooks Routes
+        - continue: false
+          matchers:
+            - route=ukg_webhooks_mail
+          mute_time_intervals: []
+          receiver: Mail-UKG-Webhooks          
+        # UTP Routes
+        - continue: false
+          matchers:
+            - route=utp_mail
+          mute_time_intervals: []
+          receiver: Mail-UTP
+        - continue: false
+          matchers:
+            - route=utp_pagerduty
+          mute_time_intervals: []
+          receiver: Pagerduty-UTP
+        - continue: false
+          group_by:
+            - '...'
+          matchers:
+            - route=AlertHrsdSreEmail
+          mute_time_intervals: []
+          receiver: AlertHrsdSreEmail
+          routes: []
+        - continue: false
+          matchers:
+            - route=ist_prod
+          mute_time_intervals: [ ]
+          receiver: ist_prod
+        # UKG_Reporting_hub_PD_mail Route
+        - continue: false
+          matchers:
+            - route=UKG_Reporting_hub_PD_mail
+          mute_time_intervals: [ ]
+          receiver: UKG_Reporting_hub_PD_mail
+        # Data Dictionary Denodo Service Routes        
+        - continue: false
+          group_by: [ ]
+          matchers:
+            - route=Pagerduty_Denodo_Prod_Critical_route
+          mute_time_intervals: []
+          receiver: Pagerduty_Denodo_Prod_Critical_ruleset
+          routes: []
+        - continue: false
+          group_by: [ ]
+          matchers:
+           - route=Pagerduty_Denodo_Prod_Warning_route
+          mute_time_intervals: []
+          receiver: Pagerduty_Denodo_Prod_Warning_ruleset
+          routes: []             
+      # Pro Launch Routes
+        - continue: false
+          matchers:
+            - route=pro_launch_critical
+          mute_time_intervals: []
+          receiver: Pro-Launch-Pagerduty
+        - continue: false
+          matchers:
+            - route=pro_launch_critical
+            - route=pro_launch_important
+          mute_time_intervals: []
+          receiver: Pro-Launch-Teams
+      # HCM Core Eventing
+        - continue: false
+          matchers:
+            - route=Eventing_PagerDuty
+          mute_time_intervals: [ ]
+          receiver: Eventing - Pager Duty
+        - continue: false
+          matchers:
+            - route=Eventing_UAT_MS_Teams
+          mute_time_intervals: [ ]
+          receiver: Eventing UAT - MS Teams
+        - continue: false
+          matchers:
+            - route=Eventing_Prod_MS_Teams
+          mute_time_intervals: [ ]
+          receiver: Eventing Prod - MS Teams
+        # HRSD Alerts Routes
+        - continue: false
+          matchers:
+            - route=HrsdCoreAlert
+          mute_time_intervals: []
+          receiver: HrsdCoreAlert_Mail
+        - continue: false
+          matchers:
+            - route=HrsdCoreAlert
+          mute_time_intervals: []
+          receiver: HrsdCoreAlert_MS_Teams
+templates:
+    - pro_notification_template_2
