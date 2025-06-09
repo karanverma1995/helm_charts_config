@@ -1,0 +1,22 @@
+ARG FROM_VERSION
+ARG FROM_TAG
+
+FROM ukgartifactory.pe.jfrog.io/docker/${FROM_VERSION}:${FROM_TAG}
+
+COPY shared/ca-certs/*.crt /usr/local/share/ca-certificates/
+COPY shared/scripts/security-setup.sh /tmp/security-setup.sh
+
+RUN chmod +x /tmp/security-setup.sh && /tmp/security-setup.sh
+
+# add a simple script that can auto-detect the appropriate JAVA_HOME value
+# based on whether the JDK or only the JRE is installed
+RUN { \
+		echo '#!/bin/sh'; \
+		echo 'set -e'; \
+		echo; \
+		echo 'dirname "$(dirname "$(readlink -f "$(which javac || which java)")")"'; \
+	} > /usr/local/bin/docker-java-home \
+	&& chmod +x /usr/local/bin/docker-java-home
+
+# Import certs to keystore
+RUN for FILE in $(ls /usr/local/share/ca-certificates); do keytool -importcert -file /usr/local/share/ca-certificates/$FILE -cacerts -storepass changeit -noprompt -alias $FILE;	done
