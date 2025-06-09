@@ -1,0 +1,170 @@
+{{ define "__subject" }}{{ index .CommonLabels "alertname" }} on {{ index .GroupLabels "instance" }} pod: {{ index .GroupLabels "pod" }} namespace: {{ index .GroupLabels "namespace" }} container: {{ index .GroupLabels "container" }}{{ end }}
+{{ define "email.default.subject" }}{{ template "__subject" . }}{{ end }}
+{{ define "email.default.html" }}
+{{ $globalSubject := "" }}
+{{ $globalUid := "" }}
+{{ range .Alerts.Firing }}
+  {{ $Subject := index .Annotations "summary" }}
+  {{ $dashUid := index .Annotations "__dashboardUid__" }}
+  {{ $globalSubject = $Subject }}
+  {{ $globalUid = $dashUid }}
+{{ end }}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--
+Style and HTML derived from https://github.com/mailgun/transactional-email-templates
+
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Mailgun
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+<head style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+<meta name="viewport" content="width=device-width" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+<title style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">{{ template "__subject" . }}</title>
+
+</head>
+
+
+<body itemscope="" itemtype="http://schema.org/EmailMessage" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100%; line-height: 1.6em; width: 100% !important; background-color: #f6f6f6; margin: 0; padding: 0;" bgcolor="#f6f6f6">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; border-radius: 3px; background-color: #fff; margin: 0; border: 1px solid #e9e9e9;" bgcolor="#fff">
+  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+    {{ if .Alerts.Resolved -}}
+      <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 16px; vertical-align: top; color: #fff; font-weight: 500; text-align: center; border-radius: 3px 3px 0 0; background-color: #16a232; margin: 0; padding: 20px;" align="center" bgcolor="#E6522C" valign="top">
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">Resolved</strong>
+      </td>
+      {{ else }}
+      <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 16px; vertical-align: top; color: #fff; font-weight: 500; text-align: center; border-radius: 3px 3px 0 0; background-color: #E6522C; margin: 0; padding: 20px;" align="center" bgcolor="#E6522C" valign="top">
+      {{ if gt (len .Alerts.Firing) 0 }}
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">{{ $globalSubject }}</strong>
+      {{ end }}
+    {{- end }}
+    </td>
+  </tr>
+  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+      <p><a href="https://ukg.grafana.net/d/{{ $globalUid }}/?var-DS_PROMETHEUS=UKG%20Pro&var-host={{ index .GroupLabels "instance" }}" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; color: #FFF; text-decoration: none; line-height: 2em; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 5px; text-transform: capitalize; background-color: #348eda; margin: 0; border-color: #348eda; border-style: solid; border-width: 10px 20px;" target="_blank">Grafana Dashboard</a></p>
+    </td>
+  </tr>
+  <tr style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;" valign="top">
+      <br style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;" />
+      Alert definitions: https://ukg.grafana.net/alerting/list?search=datasource:%22Ukg%20Pro%22{{ index .CommonLabels "alertname" }} <br>
+    </td>
+  </tr>
+  <tr>
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
+      <h3>Labels</h3>
+      <!-- Summary Section -->
+      {{ range .Alerts.Firing }}
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">alertname:</strong><br />
+        {{ .Labels.alertname }}<br /><br />
+        
+        <!-- Description Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">namespace:</strong><br />
+        {{ .Labels.namespace }}<br /><br />
+        
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">pod:</strong><br />
+        {{ .Labels.pod }}<br /><br />
+
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">container:</strong><br />
+        {{ .Labels.container }}<br /><br />
+
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">route:</strong><br />
+        {{ .Labels.route }}<br /><br />
+
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">severity:</strong><br />
+        {{ .Labels.severity }}<br /><br />
+      {{ end }}
+      {{ if .Alerts.Resolved -}}
+        {{- range .Alerts.Resolved }}
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">alertname:</strong><br />
+          {{ .Labels.alertname }}<br /><br />
+          
+          <!-- Description Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">namespace:</strong><br />
+          {{ .Labels.namespace }}<br /><br />
+          
+          <!-- SOP Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">pod:</strong><br />
+          {{ .Labels.pod }}<br /><br />
+
+          <!-- SOP Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">container:</strong><br />
+          {{ .Labels.container }}<br /><br />
+
+          <!-- SOP Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">route:</strong><br />
+          {{ .Labels.route }}<br /><br />
+
+          <!-- SOP Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">severity:</strong><br />
+          {{ .Labels.severity }}<br /><br />
+        {{- end }}
+      {{- end }}
+    </td>
+  </tr>  
+  <tr>
+    <td style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 10px;" valign="top">
+      <h3>Annotations</h3>
+      <!-- Summary Section -->
+      {{ range .Alerts.Firing }}
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">summary:</strong><br />
+        {{ .Annotations.summary }}<br /><br />
+        
+        <!-- Description Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">description:</strong><br />
+        {{ .Annotations.description }}<br /><br />
+        
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">SOPs:</strong><br />
+        {{ .Annotations.SOPs }}<br /><br />
+
+        <!-- SOP Section -->
+        <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">dashboard:</strong><br />
+        {{ .Annotations.__dashboardUid__ }}<br /><br />
+      {{ end }}
+      {{ if .Alerts.Resolved -}}
+        {{- range .Alerts.Resolved }}
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">summary:</strong><br />
+          {{ .Annotations.summary }}<br /><br />
+          
+          <!-- Description Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">description:</strong><br />
+          {{ .Annotations.description }}<br /><br />
+
+          <!-- SOP Section -->
+          <strong style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">dashboard:</strong><br />
+          {{ .Annotations.__dashboardUid__ }}<br /><br />
+        {{- end }}
+      {{- end }}
+    </td>
+  </tr>  
+</table>
+</body>
+</html>
+{{ end }}
