@@ -1,0 +1,23 @@
+namespace: influx-exporter
+replicaCount: 1
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: Always
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "1"
+  limits:
+    memory: "1Gi"
+    cpu: "2"
+service:
+  type: ClusterIP
+  port: 5100
+  targetPort: 5100
+  protocol: TCP
+secret:
+  otlpUrl: http://opentelemetry-collector.influx-exporter.svc.cluster.local:8086/api/v2/write
+labels:
+  app: influx-transformer
+  tier: backend
