@@ -1,0 +1,62 @@
+---
+#####################################################################################################
+######################################## LOCAL PLAY #################################################
+#####################################################################################################
+
+- name: Register CNAME in DNS
+  hosts: localhost
+  gather_facts: false
+  become: true
+  vars:
+    FLAG_NO_LOG: "{{ FLAG_NO_LOG }}"
+    DEBUG_MODE: "{{ DEBUG_MODE }}"
+  collections:
+    - common.collection
+  environment:
+    GOOGLE_APPLICATION_CREDENTIALS: "{{ GOOGLE_APPLICATION_CREDENTIALS }}"
+    GCP_ACCESS_TOKEN: "{{ GCP_ACCESS_TOKEN }}"
+
+  pre_tasks:
+    - name: Display start message
+      debug:
+        msg: |
+          "***************************************************************************************"
+          "************************* Enable As Production Service..*******************************"
+          "***************************************************************************************"
+
+  tasks:
+    - block:
+      # 1. Validate Health Check - TBD
+
+      # 2. Register TREX - separate workflow
+
+      # 3. Register CNAME
+      - name: Create CNAME Records from inventory
+        set_fact:
+          dns_records: "{{ dns_records | default([]) + [{'dns_host_fqdn': '{{ CNAME_FQDN }}', 'dns_target':  '{{ ILB_FQDN }}'}] }}"
+
+      - name: Register CNAME
+        ansible.builtin.include_role:
+          name: register_dns
+          tasks_from: register_cname
+        vars:
+          DNS_REGISTER: true
+          DNS_RECORDS: "{{ dns_records }}"
+
+      rescue:
+        - name: Fail Playbook {{ playbook_name }}
+          ansible.builtin.fail:
+            msg: "Playbook -{{ playbook_name }} failed"
+
+        - name: Github Summary
+          ansible.builtin.include_role:
+            name: github_error_n_summary
+            tasks_from: github_summary
+
+  post_tasks:
+    - name: Display end message
+      debug:
+        msg: |
+          "***************************************************************************************"
+          "********************** Enable As Production Service has completed *********************"
+          "***************************************************************************************"
