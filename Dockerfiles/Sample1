@@ -1,0 +1,10 @@
+From marketplace.gcr.io/google/ubuntu2004:latest
+RUN apt-get update && apt-get install -y sudo
+RUN adduser --disabled-password --gecos '' talk
+RUN adduser talk sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN chown -R talk:talk /home/talk/
+USER talk
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+RUN sudo apt-get install -y nodejs
+RUN sudo npm install -g yarn
