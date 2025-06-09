@@ -1,0 +1,65 @@
+
+prometheus.exporter.windows "flex" {
+	enabled_collectors = ["service","textfile"]
+	service {
+	  where_clause = "(Name = 'bfe') OR (Name = 'ultimate software sso host service') OR (Name = 'uesservice_customs') OR (Name = 'uesservice_64') OR (Name = 'uesservice_32') OR (Name = 'UesServiceSuperSite') OR (Name = 'rabbitmq') OR (Name = 'uesservice')"
+	}
+}
+
+discovery.relabel "flex_windows_exporter" {
+    targets = prometheus.exporter.windows.flex.targets
+    rule {
+        target_label = "instance"
+        replacement = constants.hostname
+    }
+    rule {
+    	target_label = "job"
+    	replacement = "integrations/flex_exporter"
+  	}
+    rule {
+        target_label = "datacenter"
+        replacement = "{{ vars.datacenter }}"
+    }
+    rule {
+        target_label = "site"
+        replacement = "{{ vars.site }}"
+    }
+    rule {
+        target_label = "pod"
+        replacement = "{{ vars.pod }}"
+    }
+    rule {
+        target_label = "function"
+        replacement = "{{ vars.function }}"
+    }
+    rule {
+        target_label = "app"
+        replacement = "{{ vars.app }}"
+    }
+    rule {
+    	action = "labeldrop"
+    	regex = "(core)"
+    }
+}
+
+prometheus.scrape "flex_windows_exporter" {
+  targets    = discovery.relabel.flex_windows_exporter.output
+  forward_to = [prometheus.relabel.integrations_flex_exporter.receiver]
+  job_name   = "integrations/flex_exporter"
+}
+
+prometheus.relabel "integrations_flex_exporter" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    action        = "keep"
+    regex         = "(windows_service_state|file_status|windows_textfile_mtime_seconds)"
+    source_labels = ["__name__"]
+  }
+
+rule {
+    action        = "drop"    
+    source_labels = ["state"] 
+    regex         = "(continue pending|pause pending|paused|start pending|stop pending|stopped|unknown)"
+  }
+}
