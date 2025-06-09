@@ -1,0 +1,2062 @@
+namespace: UKG Dimensions
+groups:
+    # Default
+    - name: Default
+      interval: 1m
+      rules:
+        # CPU
+        # FS-118423: CPU Alert Consolidation
+        - alert: '[Alert] : DimCritical : P1 : ALL : CPU  Usage (Above 95%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*|.*wfm.*|.*hlp.*"}[5m])) * 100) > 95)'
+          for: 30m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 95%\n  VALUE = {{ $value }}"
+            SOPs: "API Gateway - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Database/PPAS - https://engconf.int.kronos.com/display/CDS/SOP+%3A+ALERT+%3A+High+CPU+Usage\n ECS - https://engconf.int.kronos.com/display/ETS/CPU+Usage+Alert+SOP\n Integration service - https://engconf.int.kronos.com/display/Falcon/CPU+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+Usage\n RabbitMQ (hostname contains rmq) - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:CPUUsage(Above95%)\n Redis (hostname contains dmc) - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-CPU+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+CPU+Usage\n TMS - https://engconf.int.kronos.com/display/FT/SOP+-+For+High+CPU+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+CPU+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+CPU+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+CPU+Usage+Alert\n WFM - https://engconf.int.kronos.com/pages/viewpage.action?pageId=758812004\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : WFM : CPU Usage (Above 85%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance=~".*wfm.*"}[5m])) * 100) > 85)'
+          for: 15m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+            send_to: wfmaas
+          annotations:
+            summary: Host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 85%\n  VALUE = {{ $value }}"
+            SOPs: "WFM - https://engconf.int.kronos.com/pages/viewpage.action?pageId=758812004"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P2 : ALL : CPU Usage (80% - 95%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*|.*wfm.*|.*hlp.*"}[5m])) * 100) > 80 < 95)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Test for host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 80% < 95%\n  VALUE = {{ $value }}"
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P2 : ALL : CPU Usage (70% - 80%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*|.*wfm.*|.*hlp.*"}[5m])) * 100) > 70 < 80)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Test for host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 70% < 80%\n  VALUE = {{ $value }}"
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010 
+        # Memory  
+        - alert: '[Alert] : DimCritical : P1 : ALL : MEMORY Usage (Above 95%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance!~"|.*hlp.*"} + node_memory_Buffers_bytes{instance!~"|.*hlp.*"} + node_memory_Cached_bytes{instance!~"|.*hlp.*"})) / node_memory_MemTotal_bytes{instance!~"|.*hlp.*"} * 100) > 95)'
+          for: 30m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Host high memory load (instance {{ $labels.instance }})
+            description: "Reports any node where the memory usage exceeds 95% for the last 30 minutes.\nOn Java hosts where high memory usage is sustained, expect to see \"ResourceExhausted Notification\" and \"java.lang.OutOfMemoryError\" messages in the catalina.out log.\n Due to high memory utilization in redis, it is critical to report the memory usage when it breaches 45 % threshold for n2-highmem-8 and 65 % threshold for n2-highmem-16 machines. \nVALUE = {{ $value }}"
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed \n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n  TMS - https://engconf.int.kronos.com/display/FT/SOP+-+For+High+Memory+Usage+Observed \n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:MEMORYUsage(Above95%) \n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts \n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n Integration service - https://engconf.int.kronos.com/display/Falcon/Memory+Usage+Alert+SOP \n Orchestration - https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=CIA&title=SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Memory+Usage+Alert+SOP \n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Memory+Usage+Alert \n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Memory+Usage+Alert \n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Memory+Usage+Alert \n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed \n BIRT ENGINE - https://engconf.int.kronos.com/pages/viewpage.action?pageId=572133460\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P2 : ALL : MEMORY Usage (80% - 95%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance!~".*rpt.*dbs.*|.*hlp.*"} + node_memory_Buffers_bytes{instance!~".*rpt.*dbs.*|.*hlp.*"} + node_memory_Cached_bytes{instance!~".*rpt.*dbs.*|.*hlp.*"})) / node_memory_MemTotal_bytes{instance!~".*rpt.*dbs.*|.*hlp.*"} * 100) > 80 < 95)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Host high memory load (instance {{ $labels.instance }})
+            description: "Reports any node where the memory usage between 80% - 95% for the last 30 minutes.\nOn Java hosts where high memory usage is sustained, expect to see \"ResourceExhausted Notification\" and \"java.lang.OutOfMemoryError\" messages in the catalina.out log.\n Due to high memory utilization in redis, it is critical to report the memory usage when it breaches 45 % threshold for n2-highmem-8 and 65 % threshold for n2-highmem-16 machines. \nVALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=792247137 \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P2 : ALL : MEMORY Usage (Above 70% - 80%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance!~".*rpt.*app.*|.*wfm.*|.*wfl.*udm.*|.*hlp.*"} + node_memory_Buffers_bytes{instance!~".*rpt.*app.*|.*wfm.*|.*wfl.*udm.*|.*hlp.*"} + node_memory_Cached_bytes{instance!~".*rpt.*app.*|.*wfm.*|.*wfl.*udm.*|.*hlp.*"})) / node_memory_MemTotal_bytes{instance!~".*rpt.*app.*|.*wfm.*|.*wfl.*udm.*|.*hlp.*"} * 100) > 70 < 80)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Host high memory load (instance {{ $labels.instance }})
+            description: "Reports any node where the memory usage is between 70% - 80% for the last 30 minutes.\nOn Java hosts where high memory usage is sustained, expect to see \"ResourceExhausted Notification\" and \"java.lang.OutOfMemoryError\" messages in the catalina.out log.\n Due to high memory utilization in redis, it is critical to report the memory usage when it breaches 45 % threshold for n2-highmem-8 and 65 % threshold for n2-highmem-16 machines. \nVALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=792247137 \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        # Disk
+        - alert: '[WARNING] : DimCritical : P1 : ALL : Available disk space expected to fill in 24 hours'
+          expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|nfs",instance!~".*dtm-mcn.*|.*log.*|.*hlp.*"} * 100) / node_filesystem_size_bytes{fstype!~"tmpfs|nfs",instance!~".*dtm-mcn.*|.*log.*|.*hlp.*"} < 10 and ON (instance, device, mountpoint) predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|nfs",instance!~".*dtm-mcn.*|.*log.*|.*hlp.*"}[1h], 24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+          for: 60m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Host disk will fill in 24 hours (instance {{ $labels.instance }})
+            description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  Percentage used = {{ $value }}%"
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : ALL : Disk Usage (Above 90%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-idx-.*|.*-dbs.*|.*mcn.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-dbs.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1)>90)'
+          for: 30m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P1 : ALL : Disk Usage (Above 80-90%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-idx-.*|.*-dbs.*|.*mcn.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-dbs.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1) > 80 <= 90)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 80-90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P1 : ALL : Disk Usage (Above 70-80%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-idx-.*|.*-dbs.*|.*mcn.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance!~".*-nsq.*|.*-dbs.*|.*hlp.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1) >= 70 <= 80)'
+          for: 30m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 70-80% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[WARNING] : DimCritical : P2 : ALL : Disk Usage (Above 80-90%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*-idx-.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*idx.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1) >= 80 <= 90)'
+          for: 15m
+          labels:
+            severity: warning
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 80-90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : ALL : Disk Usage (Above 90%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*-idx-.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*idx.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1)>90)'
+          for: 15m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n UDM - https://engconf.int.kronos.com/display/DMKB/SOP+-+%5BAlert%5D+%3A+DimCritical+%3A+P1+%3A+ALL+%3A+CPU+Usage-+UDM+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        # Process
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Nginx'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"nginx: master|nginx: worker"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Tomcat'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"tomcat"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        - alert: 'OBS: Splunk Server Process Not Found'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname="splunk: parent", instance=~".*log.*", instance!~".*rsc.*"} < 1))'
+          for: 7m
+          labels:
+            severity: critical
+            route: sre_obs_tooling
+          annotations:
+            summary: '{{ $labels.groupname }} not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}. SOP: https://engconf.int.kronos.com/display/CIE/Restart+Instances'
+            __dashboardUid__: 7UCI70H4z
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Nodejs'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"nodejs.*"} < 1))'
+          for: 5m
+          labels:
+            severity: critical
+            route: 
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : PG Agent : Additional Count'
+          expr: 'sum by (groupname,instance,service_name,service_function,zone,username) (namedprocess_namegroup_num_procs{groupname=~"pgagent.*"}) > 1'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+  
+    #Trox Alerts
+    - name: TROX Alerts
+      rules:
+        - alert: 'High Memory Usage for Container Envoy Trox'
+          expr: '((sum by (namespace, pod, cluster_name, container, datacenter) (container_memory_working_set_bytes{container="envoy-trox"}) * 100) / sum by (namespace, pod, cluster_name, container, datacenter) (kube_pod_container_resource_limits{resource="memory", container="envoy-trox"})) >= 75'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'High Memory Usage Detected for Envoy Trox Container'
+            description: 'Memory usage for container {{ $labels.container }} in pod {{ $labels.pod }} in namespace {{ $labels.namespace }} in cluster {{ $labels.cluster_name }} in datacenter {{ $labels.datacenter }} has exceeded or is equal to 75% for 5 minutes.'
+            __dashboardUid__: cdxcp3j9bby0we
+            __panelId__: '17'
+
+        - alert: 'High CPU Usage for Container Envoy Trox'
+          expr: '((sum by (cluster_name, container, datacenter, namespace, pod) (rate(container_cpu_usage_seconds_total{container="envoy-trox"}[1m])) / sum by (cluster_name, container, datacenter, namespace, pod) (kube_pod_container_resource_limits{container="envoy-trox", resource="cpu"})) * 100) >= 90'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'High CPU Usage Detected for Envoy Trox Container'
+            description: 'CPU usage for container {{ $labels.container }} in pod {{ $labels.pod }} in namespace {{ $labels.namespace }} in cluster {{ $labels.cluster_name }} in datacenter {{ $labels.datacenter }} has exceeded or is equal to 90% for 5 minutes.'
+            __dashboardUid__: cdxcp3j9bby0we
+            __panelId__: '15'
+
+        - alert: 'Envoy Trox Container Restarts'
+          expr: 'increase(kube_pod_container_status_restarts_total{container=~"envoy-trox"}[30m]) >= 2'
+          for: 30s
+          labels:
+            severity: warning
+            route: troxalerts
+          annotations:
+            summary: 'Container Restarts Detected for Envoy Trox Container'
+            description: 'The container {{ $labels.container }} in pod {{ $labels.pod }} within namespace {{ $labels.namespace }} has restarted 2 or more times within the last 30 minutes in cluster {{ $labels.cluster_name }} at datacenter {{ $labels.datacenter }}.'
+            __dashboardUid__: cdxcp3j9bby0we
+            __panelId__: '19'
+  
+        - alert: 'Error occurred in Target Service'
+          expr: 'increase({__name__=~".*_cluster_external_upstream_rq_total", envoy_cluster_name=~".+", envoy_response_code=~"^[45].*"}[1m]) >= 1'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'Error occurred in Target Service'
+            description: 'Error occurred in Target Service. Envoy cluster name is {{ $labels.envoy_cluster_name }}, datacenter is {{ $labels.datacenter }}, cluster name is {{ $labels.cluster_name }}, and envoy response code is {{ $labels.envoy_response_code }}.'
+            __dashboardUid__: edxo585biolc0c
+            __panelId__: '14'
+
+        - alert: 'Error occurred in Target Service in K8s Environment (Internal Origin Request)'
+          expr: 'increase({__name__=~".*_cluster_internal_upstream_rq_total", envoy_cluster_name=~".+", envoy_response_code=~"^[45].*", datacenter=~".+", envoy_cluster_name!="opentelemetry_collector"}[1m]) >= 1'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'Error occurred in Target Service in K8s Environment [Data Source is ukgdim] (Internal Origin Request) '
+            description: 'Error occurred in Target Service (Internal Origin Request). Envoy cluster name is {{ $labels.envoy_cluster_name }}, datacenter is {{ $labels.datacenter }}, cluster name is {{ $labels.cluster_name }}, and envoy response code is {{ $labels.envoy_response_code }}.Data Source is ukgdim . '
+            __dashboardUid__: edxo585biolc0c
+            __panelId__: '14'
+                                                                                                                     
+        - alert: 'High Memory Usage Detected for Envoy Process in VM'
+          expr: 'sum by (cluster_id, env_id, instance, instance_name, machineType, project, scope, service_function, service_name, stack_id, zone) (namedprocess_namegroup_memory_bytes{groupname="envoy", memtype="resident",instance_name=~".+"}) / sum by (cluster_id, env_id, instance, instance_name, machineType, project, scope, service_function, service_name, stack_id, zone) (envoy_memory_max{instance_name=~".+"}) * 100 >= 75'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'High Memory Usage Detected for Envoy Process in VM [ Data Source is ukgdim ] '
+            description: 'Memory usage for Envoy process in VM {{ $labels.instance_name }} (instance {{ $labels.instance }}) in project {{ $labels.project }} in zone {{ $labels.zone }} has exceeded or is equal to 75% of the allocated memory max for 5 minutes. Environment: {{ $labels.env_id }}, Stack: {{ $labels.stack_id }}, Service: {{ $labels.service_name }}, Machine Type: {{ $labels.machineType }} . Data Source is ukgdim . '
+            __dashboardUid__: fe3synjgt3fuob
+            __panelId__: '11'
+
+        - alert: 'Error occurred in Target Service (External Origin Request) (VM)'
+          expr: 'increase({__name__=~".*_cluster_external_upstream_rq_total", envoy_cluster_name!="opentelemetry_collector", envoy_cluster_name=~".+", envoy_response_code=~"^[45].*",instance_name=~".+"}[1m]) >= 1'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'Error occurred in Target Service (External Origin Request) (VM) [ Data Source is ukgdim ] '
+            description: 'Error occurred in Target Service (External Origin Request). Instance name is {{ $labels.instance_name }}, Envoy cluster name is {{ $labels.envoy_cluster_name }}, environment is {{ $labels.env_id }}, project is {{ $labels.project }}, zone is {{ $labels.zone }}, service name is {{ $labels.service_name }}, machine type is {{ $labels.machineType }}, envoy response code is {{ $labels.envoy_response_code }}, stack id is {{ $labels.stack_id }}. Data Source is ukgdim .'
+            __dashboardUid__: ae1in6jhkm60wa
+            __panelId__: '14'
+
+        - alert: 'Error occurred in Target Service (Internal Origin Request) (VM)'
+          expr: 'increase({__name__=~".*_cluster_internal_upstream_rq_total", envoy_cluster_name!="opentelemetry_collector", envoy_cluster_name=~".+", envoy_response_code=~"^[45].*",instance_name=~".+"}[1m]) >= 1'
+          for: 5m
+          labels:
+            severity: critical
+            route: troxalerts
+          annotations:
+            summary: 'Error occurred in Target Service (Internal Origin Request) (VM) [ Data Source is ukgdim ] '
+            description: 'Error occurred in Target Service (Internal Origin Request). Instance name is {{ $labels.instance_name }}, Envoy cluster name is {{ $labels.envoy_cluster_name }}, environment is {{ $labels.env_id }}, project is {{ $labels.project }}, zone is {{ $labels.zone }}, service name is {{ $labels.service_name }}, machine type is {{ $labels.machineType }}, envoy response code is {{ $labels.envoy_response_code }}, stack id is {{ $labels.stack_id }}. Data Source is ukgdim .'
+            __dashboardUid__: ae1in6jhkm60wa
+            __panelId__: '14'
+   
+              
+                                                                                                                     
+    - name: Antivirus
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Antivirus'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"ometascan|ometascan-node"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+    
+    - name: RPT
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : RPT'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"ihub.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: SMTP
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : SMPT'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"postfix.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: Web Proxy
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Web Proxy'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"webproxy.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: Apache
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Apache'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"apache.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+    
+    - name: BRS
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : BRS Cond'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"cornd", instance=~".*brs.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        # Monitoring splunk and cron on BRS nodes
+        - alert: 'Splunk agent Process Not Found on BRS node'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*",instance=~".*brs.*"} < 1))'
+          for: 10m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+          annotations:
+            summary: '{{ $labels.groupname }} not running on (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: DNS
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : DNS (named)'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"named"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        
+    - name: API GTW
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : API GTW services'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"apigee-cassandra|edge.*|zookeeper",instance=~".*api-gtw.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        #Monitoring API Gateway Edge Service Thread
+        - alert: '[WARNING] : DimCritical : P2 : Process Check Failed : API GTW services : Thread Count Exceeded'
+          expr: '(sum by(instance) (namedprocess_namegroup_num_threads{service_name="api-gtw", service_function="app", groupname=~"edge.*"}) >= 3200 < 3400)'
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_gtw_rules
+          annotations:
+            summary: '{{ $labels.groupname }} Thread Count Exceeded (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} Thread count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        #Monitoring API Gateway Edge Service Thread
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : API GTW services : Thread Count Exceeded'
+          expr: '(sum by(instance) (namedprocess_namegroup_num_threads{service_name="api-gtw", service_function="app", groupname=~"edge.*"}) >= 3400)'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_gtw_rules
+          annotations:
+            summary: '{{ $labels.groupname }} Thread Count Exceeded (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} Thread count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+  
+
+    - name: KPI
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : KPI services'
+          expr: '(sum by(groupname,instance,service_name,service_function) ((namedprocess_namegroup_num_procs{groupname=~"cassandra|dse-spark|datastax",instance=~".*scc-bcc.*|.*scc-rcc.*"} OR namedprocess_namegroup_num_procs{groupname=~"opscenter",service_function="mgt",service_name="scc"} OR namedprocess_namegroup_num_procs{groupname=~"dse-spark",service_function="nsq",service_name="scc"}) < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: RabbitMQ
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : RabbitMQ'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"rabbitmq-server"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        - alert: '[Alert] : DimCritical : P3 : RABBITMQ : CPU Usage (Above 70%)'
+          expr: '(100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle",instance=~".*dmq.*"}[5m])) * 100) > 70)'
+          for: 30m
+          labels:
+            severity: critical
+            route: mail_rabbit
+            wfm_service: true
+          annotations:
+            summary: Host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 70%\n  VALUE = {{ $value }}"
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010 
+        - alert: '[Alert] : Warning : P3 : RabbitMQ : MEMORY Usage (Above 40%)'
+          expr: '(((node_memory_MemTotal_bytes{instance=~".*dmq.*"} - node_memory_MemAvailable_bytes{instance=~".*dmq.*"}) / node_memory_MemTotal_bytes{instance=~".*dmq.*"}) * 100 > 40)'
+          for: 30m
+          labels:
+            severity: warning
+            route: mail_rabbit
+            wfm_service: true
+          annotations:
+            summary: RabbitMQ high memory load (instance {{ $labels.instance }})
+            description: ""
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : Critical : P1 : RabbitMQ : Status Down)'
+          expr: 'min by (env_id,instance) (up{service_name=~"dmq|wfm", service_function=~"dmq|app",  job="integrations/node_exporter"}) ==0'
+          for: 0s
+          labels:
+            severity: Critical
+            route: mail_status_rabbit
+            wfm_service: true
+          annotations:
+            summary: RabbitMQ Status Down (instance {{ $labels.instance }})
+            description: ""
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: edp28ldvfrldsf
+        - alert: '[Alert] : Warning : P3 : RabbitMQ : Queued up messages >40k'
+          expr: '(sum by (cluster) (label_replace((rabbitmq_queue_messages_ready {queue!="", queue!="dead-letter-Queue"}),"cluster","$1","instance","^(.*)-[0-9]+:[0-9]+$"))) > 40000'
+          for: 15m
+          labels:
+            severity: Warning
+            route: mail_status_rabbit
+            wfm_service: true
+          annotations:
+            summary: RabbitMQ Queued Messages Above 40k (instance {{ $labels.instance }})
+            description: "{{ $labels.groupname }} Message count = {{ $value }}"
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: edp28ldvfrldsf
+        - alert: '[Alert] : Warning : P3 : RabbitMQ : Missing Consumer Queues'
+          expr: '(count by (vhost, queue)(last_over_time(rabbitmq_queue_consumers{job="integrations/rabbitmq_per_object", queue!~ "dead-letter-Queue|aliveness-test|.*hca.kpi.*|.*DelayedRetryQueueName.*|.*ForecastingEnginePredict.*|.*ForecastingEngineTraining.*|.*PeopleCacheTopic.*|.*_kpi.spark_realtime_event.*|.*_kpi.spark_realtime_retry_event.*|.*ppas_wfm.*_kpi.raw_event|.*kpi.spark_batch_event.*|.*ppas_wfm*_kpi.batch_event.*|.*HCATenantCache.*|.*wfc.notifications.mobile.*"}[15m]) == 0 and last_over_time(rabbitmq_queue_messages{job="integrations/rabbitmq_per_object", queue!~ "dead-letter-Queue|aliveness-test|.*hca.kpi.*|.*DelayedRetryQueueName.*|.*ForecastingEnginePredict.*|.*ForecastingEngineTraining.*|.*PeopleCacheTopic.*|.*_kpi.spark_realtime_event.*|.*_kpi.spark_realtime_retry_event.*|.*ppas_wfm.*_kpi.raw_event|.*kpi.spark_batch_event.*|.*ppas_wfm.*_kpi.batch_event.*|.*HCATenantCache.*|.*wfc.notifications.mobile.*"}[15m]) > 0 and last_over_time(rabbitmq_queue_consumers{job="integrations/rabbitmq_per_object", queue!~ "dead-letter-Queue|aliveness-test|.*hca.kpi.*|.*DelayedRetryQueueName.*|.*ForecastingEnginePredict.*|.*ForecastingEngineTraining.*|.*PeopleCacheTopic.*|.*_kpi.spark_realtime_event.*|.*_kpi.spark_realtime_retry_event.*|.*ppas_wfm.*_kpi.raw_event|.*kpi.spark_batch_event.*|.*ppas_wfm*_kpi.batch_event.*|.*HCATenantCache.*|.*wfc.notifications.mobile.*"}[15m] offset 90m) == 0 and last_over_time(rabbitmq_queue_messages{job="integrations/rabbitmq_per_object", queue!~ "dead-letter-Queue|aliveness-test|.*hca.kpi.*|.*DelayedRetryQueueName.*|.*ForecastingEnginePredict.*|.*ForecastingEngineTraining.*|.*PeopleCacheTopic.*|.*_kpi.spark_realtime_event.*|.*_kpi.spark_realtime_retry_event.*|.*ppas_wfm.*_kpi.raw_event|.*kpi.spark_batch_event.*|.*ppas_wfm.*_kpi.batch_event.*|.*HCATenantCache.*|.*wfc.notifications.mobile.*"}[15m] offset 90m) > 0 )) > 0'
+          for: 90m
+          labels:
+            severity: warning
+            route: mail_status_rabbit
+            wfm_service: true
+          annotations:
+            summary: RabbitMQ Missing Consumer Queues(instance {{ $labels.instance }})
+            description: ""
+            SOPs: "Head over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: edp28ldvfrldsf
+
+    - name: Redis
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Redis'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"redis sentinel|redis server"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+            redisppas_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        - alert: '[Alert] : DimCritical : P1 : Redis : MEMORY Usage exceeds threshold'
+          expr: '(((node_memory_MemTotal_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-8"} - node_memory_MemAvailable_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-8"}) / node_memory_MemTotal_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-8"}) * 100 > 65) or (((node_memory_MemTotal_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-16"} - node_memory_MemAvailable_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-16"}) / node_memory_MemTotal_bytes{instance=~".*dmc.*",instance!=".*hcm.*",machineType="n2-highmem-16"}) * 100 > 70)'
+          for: 30m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+            redisppas_service: true 
+          annotations:
+            summary: Host high memory load (instance {{ $labels.instance }})on machineType {{ $labels.machineType}} at threshold {{ $value}} %
+            description: "Due to high memory utilization in redis, it is critical to report the memory usage when it breaches 65 % threshold for n2-highmem-8 and 70 % threshold for n2-highmem-16 machines. \nVALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FAR&title=Standard+Operating+Procedure+%28SOP%29+Redis+High+Memory+Usage\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+
+    - name: Postgres
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Postgres'
+          expr: |
+            # KCFN
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"kcfn01.*",groupname=~"pgbouncer|pgagent|efm|edb.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # CUST01, exclude DR nodes in US-Central
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"cust01.*",groupname=~"pgbouncer|pgagent|efm|edb.*",zone!~"us-central.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # CUST02
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"cust02.*",groupname=~"pgbouncer|pgagent|efm|edb.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # CUST03
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"cust03.*",groupname=~"pgbouncer|pgagent|efm|edb.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # CUST04, exclude DR nodes in Europe-West4
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"cust04.*",groupname=~"pgbouncer|pgagent|efm|edb.*",zone!~"europe-west3.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # DCUS11, exclude DR nodes in US-West4
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"dcus11.*",groupname=~"pgbouncer|pgagent|efm|edb.*",zone!~"us-west4.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+              or
+            # DCUS21, exclude DR nodes in US-East4
+              (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{instance=~"dcus21.*",groupname=~"pgbouncer|pgagent|efm|edb.*",zone!~"us-east4.*",instance!~".*tms98.*|.*tms99.*"} < 1) and on (instance) (sum by(groupname,instance,service_name,service_function,zone) (namedprocess_namegroup_num_procs{groupname=~"splunk.*"}) > 0))
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+        
+    - name: SFTP
+      interval: 1m
+      rules:
+        #Monitoring SFTP Services
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : SFTP'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{groupname="goanywhere sftp",service_name="ftp"})<1)'
+          for: 10m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} not running on (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    - name: Dockerd
+      interval: 1m
+      rules:
+        #Monitoring docker Services
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : Dockerd'
+          expr: 'count by(instance) (sum by(groupname, instance, service_name, service_function) (namedprocess_namegroup_num_procs{groupname="dockerd"})) == 0'
+          for: 10m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} not running on (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    # Cassandra
+    - name: Cassandra
+      interval: 1m
+      rules: 
+        - alert: '[Alert] : DimCritical : P1 : Cassandra : Disk Usage (Above 45%)'
+          expr: |
+            (round
+              (label_replace
+                (100-
+                  (
+                    (avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",service_function="nsq"}))
+                    /(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",service_function="nsq"}))
+                  *100)
+                  ,"cassandracluster", "$1", "instance", "(.+-nsq).*") # Shorten instance name and write to cassandracluster
+              , 0.1)
+            >45)
+          for: 15m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 45% (instance {{ $labels.cassandracluster }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "https://engconf.int.kronos.com/display/FT/Cassandra+Health+Checks+Troubleshooting+Guide \n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+    
+    # DBS
+    - name: DBS
+      interval: 1m
+      rules: 
+        - alert: '[Alert] : DimCritical : P2 : DBS : Disk Usage (between 86% - 90%)'
+          expr: '(round((100-((avg by(instance,device,mountpoint,service_name)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*-dbs.*",fstype!~"tmpfs|rootfs"}))/(avg by(instance,device,mountpoint,service_name)(node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*-dbs.*",fstype!~"tmpfs|rootfs"}))*100)), 0.1) > 86 < 90)'
+          for: 15m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization between 86% and 90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : DBS : Disk Usage (Above 90%)'
+          expr: '(round((100-((avg by (instance,device,mountpoint,service_name) (node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*-dbs.*",fstype!~"tmpfs|rootfs"})) / (avg by(instance,device,mountpoint,service_name) (node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*-dbs.*",fstype!~"tmpfs|rootfs"})) *100)), 0.1) > 90)'
+          for: 15m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 90% (instance {{ $labels.instance }})
+            description: "Current utilization: {{ $value }}% "
+            SOPs: "Standard - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n Workflow service (Engine/Designer or Admin) - https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n RabbitMQ - https://engconf.int.kronos.com/display/FAR/RabbitMQ+Common+Alerts+and+SOP#RabbitMQCommonAlertsandSOP-[Alert]:DimCritical:P1:ALL:DiskUsage(Above90%)\n Redis - https://engconf.int.kronos.com/display/FAR/Redis+SOPs+and+Alerts\n integration service - https://engconf.int.kronos.com/display/Falcon/Disk+Usage+Alert+SOP\n Orchestration - https://engconf.int.kronos.com/display/CIA/SOP+-+FAILOVER+-+Disk+Usage+Observed\n ECS - https://engconf.int.kronos.com/display/ETS/Disk+Usage+Alert+SOP\n Reporting Engine Service - https://engconf.int.kronos.com/display/PA/Engine-Disk+Usage\n Reporting Information Console - https://engconf.int.kronos.com/display/PA/InfoConsole+Disk+Usage\n TMS Service: https://engconf.int.kronos.com/pages/viewpage.action?pageId=444092883\n OpenAM - https://engconf.int.kronos.com/display/FT/SOP+%3A+OpenAM+Disk+Usage+Alert\n Tenant Router - https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert\n UMS - https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert\n API GTW - https://engconf.int.kronos.com/display/AGT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed\n \nHead over to https://ukg.grafana.net/d/000000010/linux-servers?orgId=1 for further analysis"
+            __dashboardUid__: 000000010
+
+    # OPDK
+    - name: OPDK
+      interval: 1m
+      rules:
+        # OPDK CPU monitoring   
+        - alert: '[WARNING] : DimCritical : P2 : OPDK : CPU Usage Alert (Above 70%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*",service_name=~"api|api-gtw"}[5m])) * 100) > 70 )'
+          for: 15m
+          labels:
+            severity: warning
+            route: mail_gtw_rules
+          annotations:
+            summary: High CPU load for OPDK (instance {{ $labels.instance }})
+            description: "CPU load is > 70% \n  VALUE = {{ $value }}"
+            SOPs: "This is a preventive measure, no action is required on this. API Gateway (OPDK) team will look into it."
+            __dashboardUid__: 000000010
+        - alert: '[Alert]  : DimCritical : P1 : OPDK : CPU Usage Alert (Above 95%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*",service_name=~".*(api|api-gtw).*"}[2m])) * 100) > 95)'
+          for: 2m
+          labels:
+            severity: critical
+            route: pagerduty_gtw_rules
+          annotations:
+            summary: High CPU load for OPDK (instance {{ $labels.instance }})
+            description: "CPU load is greater than 95% \n  VALUE = {{ $value }}"
+            __dashboardUid__: 000000010
+        # OPDK Disk monitoring   
+        - alert: '[WARNING] : DimCritical : P2 : OPDK : Disk Usage (Above 70%)'
+          expr: '(round((100-((avg by(instance,mountpoint)(node_filesystem_avail_bytes{service_name=~".*(api|api-gtw).*",fstype!~"nfs|tempfs|rootfs|tmpfs|fuse.lxcfs|squashfs",mountpoint=~"/|/data"}))/(avg by(instance,mountpoint)(node_filesystem_size_bytes{service_name=~".*(api|api-gtw).*",fstype!~"nfs|tempfs|rootfs|tmpfs|fuse.lxcfs|squashfs",mountpoint=~"/|/data"}))*100)), 0.1) > 70)'
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_gtw_rules
+          annotations:
+            summary: High Disk Utilization for OPDK (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            SOPs: "This is a preventive measure, no action is required on this. API Gateway (OPDK) team will look into it."
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : OPDK : Disk Usage (Above 95%)'
+          expr: '(round((100-((avg by(instance,mountpoint)(node_filesystem_avail_bytes{service_name=~".*(api|api-gtw).*",fstype!~"nfs|tempfs|rootfs|tmpfs|fuse.lxcfs|squashfs",mountpoint=~"/|/data"}))/(avg by(instance,mountpoint)(node_filesystem_size_bytes{service_name=~".*(api|api-gtw).*",fstype!~"nfs|tempfs|rootfs|tmpfs|fuse.lxcfs|squashfs",mountpoint=~"/|/data"}))*100)), 0.1) > 95)'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_gtw_rules
+          annotations:
+            summary: High Disk Utilization for OPDK (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            __dashboardUid__: 000000010
+        # OPDK Memory monitoring   
+        - alert: '[WARNING] : DimCritical : P2 : OPDK : Memory Usage (Above 70%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} + node_memory_Buffers_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} + node_memory_Cached_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"})) / node_memory_MemTotal_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} * 100) > 70)'
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_gtw_rules
+          annotations:
+            summary: High Memory utilization for OPDK (instance {{ $labels.instance }})
+            description: "Memory Utilization current VALUE = {{ $value }}"
+            SOPs: "This is a preventive measure, no action is required on this. API Gateway (OPDK) team will look into it."
+            __dashboardUid__: 000000010
+        - alert: '[Alert] : DimCritical : P1 : OPDK : Memory Usage (Above 95%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} + node_memory_Buffers_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} + node_memory_Cached_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"})) / node_memory_MemTotal_bytes{instance=~".*(api|api-gtw).*",service_name=~".*(api|api-gtw).*"} * 100) > 95)'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_gtw_rules
+          annotations:
+            summary: High Memory utilization for OPDK (instance {{ $labels.instance }})
+            description: "Memory Utilization current VALUE = {{ $value }}"
+            __dashboardUid__: 000000010
+
+    # Astra
+    - name: Astra
+      interval: 1m
+      rules:
+        # Astra DB (serverless Datastax) monitoring
+        - alert: '[Alert] : Critical : P1 : Astra : Requests Timeout > 0'
+          expr: 'count(astra_db_range_requests_timeouts:rate1m{} > .005) > 1 or count(astra_db_read_requests_timeouts:rate1m{} > .005) > 1 or count(astra_db_write_requests_timeouts:rate1m{} > 10) > 1'          
+          for: 0s
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Requests to Astra DB are timing out (Astra DB ID {{ $labels.tenant }})
+            description: "Astra DB Request Timeout > 0\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP%3A+Astra+DB+Request+Time"
+            __dashboardUid__: astracloud
+        - alert: '[Alert] : Critical : P1 : Astra : Read Latency > 300ms'
+          expr: 'count((astra_db_read_latency_seconds_P95:rate1m{}) * 1000 > 300) > 5'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Read latency to Astra DB is high (tenant {{ $labels.tenant }})
+            description: "Astra DB Read Latency > 200ms\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP%3A+Astra+DB+Read+Latency"
+            __dashboardUid__: astracloud
+        - alert: '[Alert] : Critical : P1 : Astra : Write Latency > 50ms'
+          expr: 'count((astra_db_write_latency_seconds_P95:rate1m{}) * 1000 > 50) > 5'
+          for: 0s
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Write latency to Astra DB is high (tenant {{ $labels.tenant }})
+            description: "Astra DB Write Latency > 50ms\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP%3A+Astra+DB+Write+Latency"
+            __dashboardUid__: astracloud
+        - alert: '[Alert] : Critical : P1 : Astra : Rate limit > 0'
+          expr: 'astra_db_rate_limited_requests:rate1m{} > 0'
+          for: 0s
+          labels:
+            severity: critical
+            route: pagerduty_dim_rules
+            wfm_service: true
+          annotations:
+            summary: Astra DB is rate limiting (tenant {{ $labels.tenant }})
+            description: "Astra DB rate limit > 0\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP%3A+Astra+DB+Rate+Limit"
+            __dashboardUid__: astracloud
+
+    # WFM
+    - name: WFM
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Process Check Failed : WFM FNT : Nodejs'
+          expr: '(sum by(groupname,instance,service_name,service_function) (namedprocess_namegroup_num_procs{instance=~".*wfm.*fnt.*", groupname=~"nodejs.*"} < 1))'
+          for: 5m
+          labels:
+            severity: critical
+            route: 
+            wfm_service: true
+          annotations:
+            summary: '{{ $labels.groupname }} process not running (instance {{ $labels.instance }})'
+            description: '{{ $labels.groupname }} process count = {{ $value }}'
+            __dashboardUid__: 7UCI70H4z
+
+    # TMS Infra ALERTS
+    - name: TMS
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : TMS : CPU Usage (Sustained above 75%)'
+          expr: '(100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*", mode="idle"}[5m])))) > 75'
+          for: 15m
+          labels:
+            severity: critical
+            route: Pagerduty_dim_tms_route
+          annotations:
+            summary: High CPU Utilization for TMS (instance {{ $labels.instance }})
+            description: "CPU Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to EngFalconNoidaTenantManagement@ukg.com"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '1'
+        - alert: '[Alert] : DimCritical : P1 : TMS : CPU Usage (Sustained above 95%)'
+          expr: '(100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*", mode="idle"}[5m])))) > 95'
+          for: 15m
+          labels:
+            severity: critical
+            route: Pagerduty_dim_tms_route
+          annotations:
+            summary: High CPU Utilization for TMS (instance {{ $labels.instance }})
+            description: "CPU Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to EngFalconNoidaTenantManagement@ukg.com"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '1'
+        - alert: '[Alert] : DimCritical : P1 : TMS : MEMORY Usage (Above 95%)'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*"} + node_memory_Buffers_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*"} + node_memory_Cached_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*"}) / node_memory_MemTotal_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*"}))) > 95'
+          for: 15m
+          labels:
+            severity: critical
+            route: Pagerduty_dim_tms_route
+          annotations:
+            summary: High Memory Utilization for TMS (instance {{ $labels.instance }})
+            description: "Memory Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to EngFalconNoidaTenantManagement@ukg.com"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '2'
+        - alert: '[Alert] : DimCritical : P1 : TMS : Disk Usage (Above 90%)'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*",fstype!~"nfs|tempfs|rootfs"} / node_filesystem_size_bytes{instance=~".*-gss\\d+-tms\\d+-(app|dbs)?.*",fstype!~"nfs|tempfs|rootfs"})))  > 90'
+          for: 15m
+          labels:
+            severity: critical
+            route: Pagerduty_dim_tms_route
+          annotations:
+            summary: High Disk Utilization for TMS (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to EngFalconNoidaTenantManagement@ukg.com"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '3'
+
+    # IHUB
+    - name: Ihub
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : IHUB : Disk Usage (Above 85%)'
+          expr: '(node_filesystem_size_bytes{service_name="hub"} - node_filesystem_avail_bytes{service_name="hub"})/node_filesystem_size_bytes{service_name="hub"} > 0.85'
+          for: 5m
+          labels:
+            severity: critical
+            route: pagerduty_ihub
+          annotations:
+            summary: High Disk Utilization for Ihub (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to engfalconihubextnoida@ukg.com"
+            __dashboardUid__: bdlpwqc2xu5fkf
+        - alert: '[Alert] : DimCritical : P2 : IHUB : Disk Usage (Above 75%)'
+          expr: '(node_filesystem_size_bytes{service_name="hub"} - node_filesystem_avail_bytes{service_name="hub"})/node_filesystem_size_bytes{service_name="hub"} > 0.75'
+          for: 5m
+          labels:
+            severity: warning
+            route: dim_engfalconihubextnoida
+          annotations:
+            summary: High Disk Utilization for Ihub (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to engfalconihubextnoida@ukg.com"
+            __dashboardUid__: bdlpwqc2xu5fkf
+        - alert: '[Alert] : DimCritical : P3 : IHUB : Disk Usage (Above 65%)'
+          expr: '(node_filesystem_size_bytes{service_name="hub"} - node_filesystem_avail_bytes{service_name="hub"})/node_filesystem_size_bytes{service_name="hub"} > 0.65'
+          for: 5m
+          labels:
+            severity: warning
+            route: dim_ihubextintmonitoring
+          annotations:
+            summary: High Disk Utilization for Ihub (instance {{ $labels.instance }})
+            description: "Disk Utilization current VALUE = {{ $value }}"
+            SOPs: "please reach out to engfalconihubextnoida@ukg.com"
+            __dashboardUid__: bdlpwqc2xu5fkf   
+
+    # HealthCare Alerts 
+    - name: HCA
+      interval: 1m
+      rules:
+
+    # Help Center Alerts 
+    - name: HLP
+      interval: 1m
+      rules:
+
+    # ODJ Alerts 
+    - name: ODJ
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimWarning : P2 : IDP ODJ : CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*idp.*odj.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+CPU+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP ODJ : CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*idp.*odj.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+CPU+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID ODJ: CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*did.*odj.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DIMCritical : P1 : DID ODJ: CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*did.*odj.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DimWarning : P2 : PID ODJ: CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*pid.*odj.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DIMCritical : P1 : PID ODJ: CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*pid.*odj.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DimWarning : P2 : IDP ODJ : Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*idp.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*idp.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"})))  > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+Disk+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP ODJ : Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*idp.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*idp.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"})))  > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+Disk+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID ODJ: Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*did.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*did.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/HZFGNw"
+        - alert: '[Alert] : DIMCritical : P1 : DID ODJ: Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*did.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*did.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/HZFGNw"
+        - alert: '[Alert] : DimWarning : P2 : PID ODJ: Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*pid.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*pid.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/HZFGNw"
+        - alert: '[Alert] : DIMCritical : P1 : PID ODJ: Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*pid.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*pid.*odj.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/HZFGNw"
+        - alert: '[Alert] : DimWarning : P2 : IDP ODJ : Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*idp.*odj.*"} + node_memory_Buffers_bytes{instance=~".*idp.*odj.*"} + node_memory_Cached_bytes{instance=~".*idp.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*idp.*odj.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+Memory+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP ODJ : Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*idp.*odj.*"} + node_memory_Buffers_bytes{instance=~".*idp.*odj.*"} + node_memory_Cached_bytes{instance=~".*idp.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*idp.*odj.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpDJ+Memory+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID ODJ: Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*did.*odj.*"} + node_memory_Buffers_bytes{instance=~".*did.*odj.*"} + node_memory_Cached_bytes{instance=~".*did.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*did.*odj.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DIMCritical : P1 : DID ODJ: Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*did.*odj.*"} + node_memory_Buffers_bytes{instance=~".*did.*odj.*"} + node_memory_Cached_bytes{instance=~".*did.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*did.*odj.*"})))  > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DimWarning : P2 : PID ODJ: Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*pid.*odj.*"} + node_memory_Buffers_bytes{instance=~".*pid.*odj.*"} + node_memory_Cached_bytes{instance=~".*pid.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*pid.*odj.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+        - alert: '[Alert] : DIMCritical : P1 : PID ODJ: Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*pid.*odj.*"} + node_memory_Buffers_bytes{instance=~".*pid.*odj.*"} + node_memory_Cached_bytes{instance=~".*pid.*odj.*"}) / node_memory_MemTotal_bytes{instance=~".*pid.*odj.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/bX-wNg"
+    
+     # OAM Alerts 
+    - name: OAM
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimWarning : P2 : IDP OAM : CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*idp.*oam.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+CPU+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP OAM : CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*idp.*oam.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+CPU+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID OAM: CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*did.*oam.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DIMCritical : P1 : DID OAM: CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*did.*oam.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DimWarning : P2 : PID OAM: CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*pid.*oam.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DIMCritical : P1 : PID OAM: CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*pid.*oam.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DimWarning : P2 : IDP OAM : Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*idp.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*idp.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+Disk+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP OAM : Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*idp.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*idp.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+Disk+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID OAM: Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*did.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*did.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/U5FGNw"
+        - alert: '[Alert] : DIMCritical : P1 : DID OAM: Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*did.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*did.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/U5FGNw"
+        - alert: '[Alert] : DimWarning : P2 : PID OAM: Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*pid.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*pid.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/U5FGNw"
+        - alert: '[Alert] : DIMCritical : P1 : PID OAM: DISK > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*pid.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*pid.*oam.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/x/U5FGNw"
+        - alert: '[Alert] : DimWarning : P2 : IDP OAM : Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*idp.*oam.*"} + node_memory_Buffers_bytes{instance=~".*idp.*oam.*"} + node_memory_Cached_bytes{instance=~".*idp.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*idp.*oam.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+Memory+Usage+Alert+SOP"
+        - alert: '[Alert] : DIMCritical : P1 : IDP OAM : Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*idp.*oam.*"} + node_memory_Buffers_bytes{instance=~".*idp.*oam.*"} + node_memory_Cached_bytes{instance=~".*idp.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*idp.*oam.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/IdpAM+Memory+Usage+Alert+SOP"
+        - alert: '[Alert] : DimWarning : P2 : DID OAM: Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*did.*oam.*"} + node_memory_Buffers_bytes{instance=~".*did.*oam.*"} + node_memory_Cached_bytes{instance=~".*did.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*did.*oam.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DIMCritical : P1 : DID OAM: Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*did.*oam.*"} + node_memory_Buffers_bytes{instance=~".*did.*oam.*"} + node_memory_Cached_bytes{instance=~".*did.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*did.*oam.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DimWarning : P2 : PID OAM: Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*pid.*oam.*"} + node_memory_Buffers_bytes{instance=~".*pid.*oam.*"} + node_memory_Cached_bytes{instance=~".*pid.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*pid.*oam.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+        - alert: '[Alert] : DimCritical : P1 : PID OAM: Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*pid.*oam.*"} + node_memory_Buffers_bytes{instance=~".*pid.*oam.*"} + node_memory_Cached_bytes{instance=~".*pid.*oam.*"}) / node_memory_MemTotal_bytes{instance=~".*pid.*oam.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=Restart+tomcat+for+DIDP+and+DIDP+proxy+nodes"
+    
+    # SDM Alerts 
+    - name: SDM
+      interval: 1m
+      rules:
+    
+    # TRT Alerts 
+    - name: TRT
+      interval: 1m
+      rules:
+        # WFM PRO IAM VM SERVICES CPU ALERTS
+        - alert: '[Alert] : DimWarning : P2 : TRT : CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*trt.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+CPU+Usage+Alert" 
+        - alert: '[Alert] : DIMCritical : P1 : TRT : CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*trt.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+CPU+Usage+Alert"
+        # WFM PRO IAM VM SERVICES Disk Usage ALERTS
+        - alert: '[Alert] : DimWarning : P2 : TRT : Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*trt.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*trt.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert" 
+        - alert: '[Alert] : DIMCritical : P1 : TRT : Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*trt.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*trt.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Disk+Usage+Alert"
+        # WFM PRO IAM VM SERVICES Memory Usage ALERTS
+        - alert: '[Alert] : DimWarning : P2 : TRT : Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*trt.*"} + node_memory_Buffers_bytes{instance=~".*trt.*"} + node_memory_Cached_bytes{instance=~".*trt.*"}) / node_memory_MemTotal_bytes{instance=~".*trt.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Memory+Usage+Alert" 
+        - alert: '[Alert] : DIMCritical : P1 : TRT : Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*trt.*"} + node_memory_Buffers_bytes{instance=~".*trt.*"} + node_memory_Cached_bytes{instance=~".*trt.*"}) / node_memory_MemTotal_bytes{instance=~".*trt.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+TR+Memory+Usage+Alert"
+
+    # UDM Alerts 
+    - name: UDM
+      interval: 1m
+      rules:
+
+    # UMS Alerts 
+    - name: UMS
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DIMCritical : P1 : UMS : CPU > 80%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*ums.*", mode="idle"}[5m])))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+CPU+Usage+Alert"
+        - alert: '[Alert] : DimWarning : P2 : UMS : CPU > 70%'
+          expr: '(100 * (1 - avg by(instance) (irate(node_cpu_seconds_total{instance=~".*ums.*", mode="idle"}[5m])))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: CPU Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "CPU Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+CPU+Usage+Alert"
+        - alert: '[Alert] : DIMCritical : P1 : UMS : Disk > 80%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*ums.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*ums.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"})))  > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert"
+        - alert: '[Alert] : DimWarning : P2 : UMS : Disk > 70%'
+          expr: '(100 * (1 - (node_filesystem_avail_bytes{instance=~".*ums.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"} / node_filesystem_size_bytes{instance=~".*ums.*", filesystem!~"tmpfs|fuse.lxcfs|squashfs", mountpoint=~"/|/data"})))  > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Disk Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Disk Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Disk+Usage+Alert"
+        - alert: '[Alert] : DIMCritical : P1 : UMS : Memory Usage > 80%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*ums.*"} + node_memory_Buffers_bytes{instance=~".*ums.*"} + node_memory_Cached_bytes{instance=~".*ums.*"}) / node_memory_MemTotal_bytes{instance=~".*ums.*"}))) > 80'          
+          for: 5m
+          labels:
+            severity: critical
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 80%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Memory+Usage+Alert"
+        - alert: '[Alert] : DimWarning : P2 : UMS : Memory Usage > 70%'
+          expr: '(100 * (1 - ((node_memory_MemFree_bytes{instance=~".*ums.*"} + node_memory_Buffers_bytes{instance=~".*ums.*"} + node_memory_Cached_bytes{instance=~".*ums.*"}) / node_memory_MemTotal_bytes{instance=~".*ums.*"}))) > 70'          
+          for: 5m
+          labels:
+            severity: warning
+            route: mail_wfm_pro_iam
+            wfm_service: true
+          annotations:
+            summary: Memory Usage is greater than 70% (instance {{ $labels.instance }})
+            description: "Memory Usage is greater than 70%\n  - CURRENT VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+%3A+UMS+Memory+Usage+Alert"
+
+    # WFL Alerts 
+    - name: WFL
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimNonCritical : P3 : CPU Usage on Workflow DB is above 70%'
+          expr: '(round((100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*",instance=~".*wfl.*-dbs.*"}[2m])) * 100),0.1) > 70)'
+          for: 2m
+          labels:
+            severity: Warning
+            route: dim_workflow
+          annotations:
+            summary: 'Triggers alert when CPU usage on workflow database is above 70%'
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '1'
+        - alert: '[Alert] : DimNonCritical : P3 : Memory Usage on Workflow DB is above 60%'
+          expr: '(round(avg by (instance) (((node_memory_MemTotal_bytes{instance=~".*wfl.*-dbs.*"} - (node_memory_MemAvailable_bytes{instance=~".*wfl.*-dbs.*"} or (node_memory_MemFree_bytes{instance=~".*wfl.*-dbs.*"} + node_memory_Buffers_bytes{instance=~".*wfl.*-dbs.*"} + node_memory_Cached_bytes{instance=~".*wfl.*-dbs.*"}))) / node_memory_MemTotal_bytes{instance=~".*wfl.*-dbs.*"}) * 100), 0.1)) > 60'
+          for: 2m
+          labels:
+            severity: Warning
+            route: dim_workflow
+          annotations:
+            summary: 'Triggers alert when Memory usage on workflow database is above 60%'
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '2'
+        - alert: '[Alert] : DimCritical : P2 : CPU Usage on Workflow DB is above 80%'
+          expr: '(round((100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle",instance!~".*ans.*|.*log.*",instance=~".*wfl.*-dbs.*"}[2m])) * 100),0.1) > 80)'
+          for: 2m
+          labels:
+            severity: Warning
+            route: pagerduty_dim_rules
+          annotations:
+            summary: 'Triggers alert when CPU usage on workflow database is above 80%'
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=817155890"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '1'
+        - alert: '[Alert] : DimCritical : P2 : Memory Usage on Workflow DB is above 80%'
+          expr: '(round(avg by (instance) (((node_memory_MemTotal_bytes{instance=~".*wfl.*-dbs.*"} - (node_memory_MemAvailable_bytes{instance=~".*wfl.*-dbs.*"} or (node_memory_MemFree_bytes{instance=~".*wfl.*-dbs.*"} + node_memory_Buffers_bytes{instance=~".*wfl.*-dbs.*"} + node_memory_Cached_bytes{instance=~".*wfl.*-dbs.*"}))) / node_memory_MemTotal_bytes{instance=~".*wfl.*-dbs.*"}) * 100), 0.1)) > 80'
+          for: 2m
+          labels:
+            severity: Warning
+            route: pagerduty_dim_rules
+          annotations:
+            summary: 'Triggers alert when Memory usage on workflow database is above 80%'
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=817155900"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '2'
+        - alert: '[Alert] : DimCritical : P2 : Memory Usage on Workflow App (87-95%)'
+          expr: 'round((avg by (instance) (((node_memory_MemTotal_bytes{instance=~".*wfl.*-(wfm|udm).*"} - (node_memory_MemAvailable_bytes{instance=~".*wfl.*-(wfm|udm).*"} or (node_memory_MemFree_bytes{instance=~".*wfl.*-(wfm|udm).*"} + node_memory_Buffers_bytes{instance=~".*wfl.*-(wfm|udm).*"} + node_memory_Cached_bytes{instance=~".*wfl.*-(wfm|udm).*"})))/(node_memory_MemTotal_bytes{instance=~".*wfl.*-(wfm|udm).*"})) * 100)), 0.1) > 87 <95'
+          for: 2m
+          labels:
+            severity: Warning
+            route: platform_workflow
+          annotations:
+            summary: 'Triggers alert when Memory usage on workflow App is between 87 to 95 %'
+            SOPs: "https://engconf.int.kronos.com/display/FT/SOP+-+FAILOVER+-+High+CPU+or+Memory+or+Disk+Usage+Observed"
+            __dashboardUid__: dd190d2b-d3e5-46c4-aaec-337948ac8713
+            __panelId__: '2'
+
+
+
+    # Data Dictionary Service Status Monitoring
+    - name: Data Dictionary Alerts Prod
+      rules:
+        - alert: (WARNING) Denodo Service Status is Down
+          expr: 'sum(up{job="denodo-prod-node-1-alloy", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or up{job="denodo-prod-node-2-alloy", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 5m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo Service is down on (instance {{ $labels.instance }})
+            description: Denodo Service is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions. 
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo+VQL+Server+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '2'      
+        - alert: (CRITICAL) Denodo Service Status is Down
+          expr: 'sum(up{job="denodo-prod-node-1-alloy", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or up{job="denodo-prod-node-2-alloy", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo Service is down on (instance {{ $labels.instance }})
+            description: Denodo Service is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions. 
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo+VQL+Server+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '2'
+        - alert: (WARNING) Denodo Design Studio is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.design_studio", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.design_studio", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 5m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo Design Studio is down on (instance {{ $labels.instance }})
+            description: Denodo Design Studio is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo-Design-Studio+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '23'
+        - alert: (CRITICAL) Denodo Design Studio is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.design_studio", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.design_studio", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo Design Studio is down on (instance {{ $labels.instance }})
+            description: Denodo Design Studio is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo-Design-Studio+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '23'            
+        - alert: (WARNING) Denodo Data Catalog is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.data_catalog", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.data_catalog", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 5m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo Data Catalog is down on (instance {{ $labels.instance }})
+            description: Denodo Data Catalog is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo-Data-Catalog+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '24' 
+        - alert: (CRITICAL) Denodo Data Catalog is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.data_catalog", instance="denodo-prod-node-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.data_catalog", instance="denodo-prod-node-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo Data Catalog is down on (instance {{ $labels.instance }})
+            description: Denodo Data Catalog is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo-Data-Catalog+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '24'                        
+        - alert: (WARNING) Denodo SM License Manager is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.license_manager", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.license_manager", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 180m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo SM License Manager is down on (instance {{ $labels.instance }})
+            description: Denodo SM License Manager is down for more than 3 hours now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+License+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Alicense-manager%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721304958.53735_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '19'
+        - alert: (CRITICAL) Denodo SM License Manager is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.license_manager", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.license_manager", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 60m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo SM License Manager is down on (instance {{ $labels.instance }})
+            description: Denodo SM License Manager is down for more than 1 hour now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+License+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Alicense-manager%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721304958.53735_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '19'            
+        - alert: (WARNING) Denodo SM Solution Manager is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.solution_manager", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.solution_manager", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 5m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo SM Solution Manager is down on (instance {{ $labels.instance }})
+            description: Denodo SM Solution Manager is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Solution+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Asolution-manager%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721305335.53749_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '20'  
+        - alert: (CRITICAL) Denodo SM Solution Manager is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.solution_manager", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.solution_manager", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo SM Solution Manager is down on (instance {{ $labels.instance }})
+            description: Denodo SM Solution Manager is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Solution+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Asolution-manager%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721305335.53749_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '20'               
+        - alert: (WARNING) Denodo SM Solution Manager Webtool is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==1'
+          for: 5m
+          labels:
+            severity: warning
+            route:  Pagerduty_Denodo_Prod_Warning_route
+          annotations:
+            summary: Denodo SM Solution Manager Webtool is down on (instance {{ $labels.instance }})
+            description: Denodo SM Solution Manager Webtool is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Solution+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Asolution-manager-web-tool%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721305551.53757_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '21'   
+        - alert: (CRITICAL) Denodo SM Solution Manager Webtool is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo SM Solution Manager Webtool is down on (instance {{ $labels.instance }})
+            description: Denodo SM Solution Manager Webtool is down for more than 5 minutes now as self healing was not able to bring up the service, Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Solution+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Asolution-manager-web-tool%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721305551.53757_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '21'                           
+        - alert: (CRITICAL) Denodo WEB ILB is Down
+          expr: 'probe_success{job="prometheus.scrape.denodo_web_ilb", instance="denodo-prod-web.denodo.us-east1.prod.gcp.int"}<1'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo WEB ILB is down on (instance {{ $labels.instance }})
+            description: Denodo WEB ILB is down for more than 5 minutes now, Please review the error logs in GCP and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Denodo-Design-Studio+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-node-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Avdp%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721303097.53696_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '26' 
+        - alert: (CRITICAL) Denodo SM WEB ILB is Down
+          expr: 'sum(probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-1.denodo.us-east1.prod.gcp.int"} or probe_success{job="prometheus.scrape.solution_manager_webtool", instance="denodo-prod-solution-manager-2.denodo.us-east1.prod.gcp.int"})==0'
+          for: 5m
+          labels:
+            severity: critical
+            route:  Pagerduty_Denodo_Prod_Critical_route
+          annotations:
+            summary: Denodo SM WEB ILB is down on (instance {{ $labels.instance }})
+            description: Denodo SM WEB ILB is down for more than 5 minutes now. Please review the error logs and take the necessary actions.
+            SOPs: "https://engconf.int.kronos.com/display/DPFI/SOP+for+Solution+Manager+is+Down"
+            splunk_url: https://ukg.splunkcloud.com/en-US/app/search/search?earliest=-7d%40h&latest=now&q=search%20index%3D%22ukg_peoplefabric_app%22%20host%3D%22denodo-prod-solution-manager-*%22%20sourcetype%3D%22peoplefabric%3Adenodo%3Asolution-manager-web-tool%22&display.page.search.mode=smart&dispatch.sample_ratio=1&sid=1721305551.53757_594F7970-D5A6-41C8-8187-B2F49C375CEE
+            __dashboardUid__: b2a0317b-a509-41ad-8f5e-50615ebde7e2
+            __panelId__: '28'           
+    - name: MFT (WFD)
+      interval: 1m
+      rules:
+      #Memory monitoring pd
+        - alert: 'MFT(WFD) Memory utilisation [P1] more than 95%' 
+          expr: '((max by (instance, service_function) (100 * (1 - ((node_memory_MemFree_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Buffers_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Cached_bytes{service_name="ftp", service_function!="dbs"}) / node_memory_MemTotal_bytes{service_name="ftp", service_function!="dbs"})))) > 95)'
+          for: 20m
+          labels:
+            severity: critical
+            route: mft-wfd-route-pd
+          annotations:
+            summary: Query averages Memory utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 95%
+            description: "Memory utilization is > 95%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '26'  
+            # Memory monitoring webhook
+        - alert: 'MFT(WFD) Memory utilisation [P2] more than 85% ' 
+          expr: '((max by (instance, service_function) (100 * (1 - ((node_memory_MemFree_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Buffers_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Cached_bytes{service_name="ftp", service_function!="dbs"}) / node_memory_MemTotal_bytes{service_name="ftp", service_function!="dbs"})))) > 85)'
+          for: 20m
+          labels:
+            severity: critical
+            route: mft-wfd-route-webhook
+          annotations:
+            summary: Query averages Memory utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 85%
+            description: "Memory utilization is > 85%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '26'  
+            # Memory monitoring email
+        - alert: 'MFT(WFD) Memory utilisation [P3] more than 75% ' 
+          expr: '((max by (instance, service_function) (100 * (1 - ((node_memory_MemFree_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Buffers_bytes{service_name="ftp", service_function!="dbs"} +node_memory_Cached_bytes{service_name="ftp", service_function!="dbs"}) / node_memory_MemTotal_bytes{service_name="ftp", service_function!="dbs"})))) > 75)'
+          for: 20m
+          labels:
+            severity: critical
+            route: mft-wfd-route-email
+          annotations:
+            summary: Query averages Memory utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 75%
+            description: "Memory utilization is > 75%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '26'  
+            # CPU monitoring pd
+        - alert: 'MFT(WFD) CPU utilisation [P1] more than 95%' 
+          expr: '((max by (instance, service_function) (100 - irate(node_cpu_seconds_total{service_name="ftp", service_function!="dbs", mode="idle"}[2m]) * 100)) > 95)'
+          for: 20m 
+          labels:
+            severity: critical
+            route: mft-wfd-route-pd
+          annotations:
+            summary: Query averages CPU limit utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 95%
+            description: "CPU load is > 95%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '24'
+            # CPU monitoring webhook
+        - alert: 'MFT(WFD) CPU utilisation [P2] more than 85%' 
+          expr: '((max by (instance, service_function) (100 - irate(node_cpu_seconds_total{service_name="ftp", service_function!="dbs", mode="idle"}[2m]) * 100)) > 85)'
+          for: 20m 
+          labels:
+            severity: critical
+            route: mft-wfd-route-webhook
+          annotations:
+            summary: Query averages CPU limit utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 85%
+            description: "CPU load is > 85%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '24'
+            # CPU monitoring email
+        - alert: 'MFT(WFD) CPU utilisation [P3] more than 75%' 
+          expr: '((max by (instance, service_function) (100 - irate(node_cpu_seconds_total{service_name="ftp", service_function!="dbs", mode="idle"}[2m]) * 100)) > 75)'
+          for: 20m 
+          labels:
+            severity: critical
+            route: mft-wfd-route-email
+          annotations:
+            summary: Query averages CPU limit utilization (in %) over 20 minutes. Evaluation interval - 1m It alerts if the average exceeds 75%
+            description: "CPU load is > 75%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '24'
+            # Disk monitoring pd
+        - alert: 'MFT(WFD) Disk utilisation more than 85%' 
+          expr: '((max by (env_id, instance) (100 * (1 - (node_filesystem_avail_bytes{instance=~".*-.*", service_name=~"ftp", fstype!~"nfs|tmpfs|vfat", mountpoint=~"/|/sftpdata"} / node_filesystem_size_bytes{instance=~".*-.*", service_name=~"ftp", fstype!~"nfs|tmpfs|vfat", mountpoint=~"/|/sftpdata"})))) > 85)'
+          for: 30m 
+          labels:
+            severity: critical
+            route: mft-wfd-route-pd
+          annotations:
+            summary: Query averages Disk utilization (in %) over 2 minutes. Evaluation interval - 1m It alerts if the average exceeds 85%
+            description: "Disk utilisation > 85%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '28'
+            # Disk monitoring webhook
+        - alert: 'MFT(WFD) Disk utilisation more than 80%' 
+          expr: '((max by (env_id, instance) (100 * (1 - (node_filesystem_avail_bytes{instance=~".*-.*", service_name=~"ftp", fstype!~"nfs|tmpfs|vfat", mountpoint=~"/|/sftpdata"} / node_filesystem_size_bytes{instance=~".*-.*", service_name=~"ftp", fstype!~"nfs|tmpfs|vfat", mountpoint=~"/|/sftpdata"})))) > 80)'
+          for: 30m 
+          labels:
+            severity: critical
+            route: mft-wfd-route-webhook
+          annotations:
+            summary: Query averages Disk utilization (in %) over 2 minutes. Evaluation interval - 1m It alerts if the average exceeds 80%
+            description: "Disk utilisation > 80%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?spaceKey=FT&title=MFT+%28WFM%29+GoAnywhere+Resource+utilization"
+            __dashboardUid__: be0jsnyh2yn7kc
+            __panelId__: '28'
+    - name: UKG Clinical Scheduling Extension
+      rules:
+        # CPU monitoring
+        - alert: '[WARNING]: P2 : CPU Utilization CSE Servers (85% - 90%)'
+          expr: '100 - (avg by (instance) (rate(windows_cpu_time_total{instance=~"^s.*" ,mode="idle"}[2m])) * 100) >= 85 < 90'
+          for: 15m
+          labels:
+            severity: warning
+            route:  cseprodemail
+            wfm_service: true
+          annotations:
+            summary: Host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is >= 85%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}. Please Follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=763729180"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '19'
+        - alert: '[CRITICAL] : P1 : CPU Utilization CSE Servers (Above 90%)'
+          expr: '100 - (avg by (instance) (rate(windows_cpu_time_total{instance=~"^s.*" ,mode="idle"}[2m])) * 100) >=90'
+          for: 15m
+          labels:
+            severity: critical
+            route:  cseprodemail
+            wfm_service: true
+          annotations:
+            summary: Host high CPU load (instance {{ $labels.instance }})
+            description: "CPU load is > 90%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}. Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=763729180"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '19'
+        # Memory monitoring
+        - alert: '[WARNING] : P2 : Memory Utilization CSE Servers (85% - 90%)'
+          expr: '100 - ((windows_os_physical_memory_free_bytes{instance=~"^s.*"} / windows_cs_physical_memory_bytes{instance=~"^s.*"}) * 100) >= 85 < 90 '
+          for: 15m
+          labels:
+            severity: warning
+            route:  cseprodemail
+            wfm_service: true
+            service: app
+          annotations:
+            summary: high memory load (instance {{ $labels.instance }})
+            description: "Memory usage is > 59%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}. Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=763738478"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '21'
+        - alert: '[CRITICAL]: P1: Memory Utilization CSE Servers (Above 90%)'
+          expr: '100 - ((windows_os_physical_memory_free_bytes{instance=~"^s.*"} / windows_cs_physical_memory_bytes{instance=~"^s.*"}) * 100) >= 90 '
+          for: 15m
+          labels:
+            severity: critical
+            route:  cseprodemail
+            wfm_service: true
+            service: app
+          annotations:
+            summary: high memory load (instance {{ $labels.instance }})
+            description: "Memory usage is > 59%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}.Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=763738478"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '21'
+        # Disk monitoring
+        - alert: '[WARNING] : P2: Disk Utilization for CSE Servers (80% - 95%)'
+          expr: '100.0 - 100 * ((windows_logical_disk_free_bytes{instance=~"^s.*"}/ 1024 / 1024 ) / (windows_logical_disk_size_bytes{instance=~"^s.*", volume!~"P:|X:"} / 1024 / 1024)) >= 85 < 90'
+          for: 5m
+          labels:
+            severity: critical
+            route:  cseprodemail
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 85% ({{ $labels.instance }}) on volume ({{ $labels.volume }})
+            description: "Current utilization: {{ $value }}%.Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=765986987"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '23'
+        - alert: '[WARNING] : P2 :  Disk Utilization for CSE Servers (Above 90%)'
+          expr: '100.0 - 100 * ((windows_logical_disk_free_bytes{instance=~"^s.*"}/ 1024 / 1024 ) / (windows_logical_disk_size_bytes{instance=~"^s.*", volume!~"P:|X:"} / 1024 / 1024)) >= 90'
+          for: 5m
+          labels:
+            severity: critical
+            route:  cseprodemail
+            wfm_service: true
+          annotations:
+            summary: Disk Utilization Greater than 90% ({{ $labels.instance }}) on volume ({{ $labels.volume }}) 
+            description: "Current utilization: {{ $value }}%. Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/pages/viewpage.action?pageId=765986987"
+            __dashboardUid__: edi4bw1uhbd34f
+            __panelId__: '23'
+        # CSE TEST Process monitoring
+        - alert: '[WARNING] :P2 : KronosHealthCare processes on check'
+          expr: '( max by (instance, name, state) (windows_service_state{instance=~"^s.*", name=~"^kronos.*", state="running"}) != 1 )* on (instance, name) group_left(start_mode)( max by (instance, name,start_mode) (windows_service_start_mode{instance=~"^s.*", name=~"^kronos.*", start_mode="auto"}) > 0)'
+          for: 5m
+          labels:
+            severity: warning
+            route:  ap_test_route
+            value:  $labels.value
+          annotations:
+            summary: '{{ $labels.name }} process on (instance {{ $labels.instance }})'
+            description: "Please check the graph for more details https://ukg.grafana.net/goto/EEtvqzWNg?orgId=1.Please follow the SOP"
+            SOPs: "https://engconf.int.kronos.com/display/EHC/CSE+SOP+Kronoshealthcare+Services+Stop"
+            __dashboardUid__: fdzjv035454w0d
+            __panelId__: '15'
+#Help Service Alerts
+    - name: Help Service
+      interval: 1m
+      rules:
+        - alert: '[Alert] : DimCritical : P1 : Help Service : MEMORY Usage (Above 95%)' 
+          expr: '(100 - (((node_memory_MemFree_bytes{instance=~".*hlp.*"} + node_memory_Buffers_bytes{instance=~".*hlp.*"} + node_memory_Cached_bytes{instance=~".*hlp.*"})) / node_memory_MemTotal_bytes{instance=~".*hlp.*"} * 100) > 95)'
+          for: 30m
+          labels:
+            severity: critical
+            route: help_service_rules
+          annotations:
+            summary: Memory Usage is greater than 95% (instance {{ $labels.instance }}) 
+            description: "Memory utilization is > 95%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+Memory+Usage+Alert"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '2'  
+        - alert: '[WARNING] : DimCritical : P2 : Help Service : Memory Usage (80% - 95%)'
+          expr: '(100 - (((node_memory_MemFree_bytes{instance=~".*hlp.*"} + node_memory_Buffers_bytes{instance=~".*hlp.*"} + node_memory_Cached_bytes{instance=~".*hlp.*"})) / node_memory_MemTotal_bytes{instance=~".*hlp.*"} * 100) > 80 < 95)'
+          for: 30m
+          labels:
+            severity: warning
+            route: help_service_rules
+          annotations:
+            summary: Memory Usage is greater than 80% (instance {{ $labels.instance }}) 
+            description: "Memory utilization is > 80%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+Memory+Usage+Alert"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '2'  
+        - alert: '[Alert] : DimCritical : P1 : Help Service : CPU Usage (Above 95%)' 
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance=~".*hlp.*"}[5m])) * 100) > 95)'
+          for: 30m 
+          labels:
+            severity: critical
+            route: help_service_rules
+          annotations:
+            summary: CPU Usage is greater than 95% (instance {{ $labels.instance }})
+            description: "CPU load is > 95%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+CPU+Usage+Alert"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '1' 
+        - alert: '[WARNING] : DimCritical : P2 : Help Service : CPU Usage (80% - 95%)'
+          expr: '(100 - (avg by(instance,service_name) (rate(node_cpu_seconds_total{mode="idle",instance=~".*hlp.*"}[5m])) * 100) > 80 < 95)'
+          for: 30m 
+          labels:
+            severity: warning
+            route: help_service_rules
+          annotations:
+            summary: CPU Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "CPU load is > 95%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+CPU+Usage+Alert"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '1' 
+        - alert: '[Alert] : DimCritical : P1 : Help Service : Disk Usage (Above 90%)'
+          expr: '(round((100-((avg by(instance,mountpoint)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*hlp.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,mountpoint)(node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*hlp.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1) > 90)'
+          for: 30m 
+          labels:
+            severity: critical
+            route: help_service_rules
+          annotations:
+            summary: Disk Usage is greater than 90% (instance {{ $labels.instance }})
+            description: "Disk load is > 90%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+Disk+Usage+Alert+SOP"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '3' 
+        - alert: '[WARNING] : DimCritical : P2 : Help Service : Disk Usage (80% - 95%)'
+          expr: '(round((100-((avg by(instance,mountpoint)(node_filesystem_avail_bytes{job="integrations/node_exporter",instance=~".*hlp.*",fstype!~"nfs|tempfs|rootfs"}))/(avg by(instance,mountpoint)(node_filesystem_size_bytes{job="integrations/node_exporter",instance=~".*hlp.*",fstype!~"nfs|tempfs|rootfs"}))*100)), 0.1) > 80 <= 90)'
+          for: 30m 
+          labels:
+            severity: warning
+            route: help_service_rules
+          annotations:
+            summary: Disk Usage is greater than 80% (instance {{ $labels.instance }})
+            description: "Disk load is > 80%\n  VALUE = {{ $value }}\n Instance name is {{ $labels.instance }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+Disk+Usage+Alert+SOP"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '3' 
+        - alert: '[Alert] : DimCritical : P1 : Help Service : Status Down)'
+          expr: 'sum by (instance) (up{instance=~".*hlp.*", job="integrations/node_exporter"}) ==0'
+          for: 10m
+          labels:
+            severity: Critical
+            route: help_service_rules
+          annotations:
+            summary: Help Service Status Down (instance {{ $labels.instance }})
+            description: "Instance name is {{ $labels.instance }} \n VALUE = {{ $value }}"
+            SOPs: "https://engconf.int.kronos.com/display/WFDAA/Help+Service+SOP+-+HealthCheck+failures"
+            __dashboardUid__: ae19leopst5a8b
+            __panelId__: '4' 
