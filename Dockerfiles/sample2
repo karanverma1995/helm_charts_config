@@ -1,0 +1,14 @@
+FROM us-east1-docker.pkg.dev/tlk-dev01-eng01-9115/base-image/talk-google-node-backend:16.17.1
+RUN mkdir -p /home/talk/talk-web-client
+WORKDIR /home/talk/talk-web-client
+COPY --chown=talk:talk . ./
+ENV DIR /home/talk/talk-web-client
+ARG node_env=production
+ENV NODE_ENV=$node_env
+ARG env=dev
+ENV SPOTCUES_ENV=$env
+ARG GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+ARG GOOGLE_CLOUD_CDN_URL=$GOOGLE_CLOUD_CDN_URL
+ARG GOOGLE_CLOUD_WEB_ASSETS_BUCKET=$GOOGLE_CLOUD_WEB_ASSETS_BUCKET
+ARG GOOGLE_CLOUD_PROJECT_ID=$GOOGLE_CLOUD_PROJECT_ID
+RUN yarn install --network-timeout=99999;
