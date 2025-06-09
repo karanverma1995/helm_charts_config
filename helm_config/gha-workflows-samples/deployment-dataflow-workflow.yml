@@ -1,0 +1,363 @@
+# Workflow to deploy the sql batch dataflow pipeline using terraform
+name: Deploy Dataflow
+run-name: "dataflow terraform deployment to ${{ inputs.etlProject }} : ${{ inputs.terraform_operation }}"
+on:
+  workflow_call:
+    inputs:
+      terraform_operation:
+        description: "Terraform operation: plan, apply, destroy"
+        required: true
+        type: string
+      etlProject:
+        description: "Deployment project"
+        required: true
+        type: string
+      dataflow_image_version:
+        description: "Docker image version"
+        required: false
+        default: latest
+        type: string
+      branch:
+        description: "Branch name"
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      terraform_operation:
+        description: "Terraform operation: plan, apply, destroy"
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      etlProject:
+        description: "Deployment project"
+        required: true
+        type: choice
+        default: repd-e-eng-13
+        options:
+          - repd-e-eng-01
+          - repd-e-eng-02
+          - repd-e-eng-03
+          - repd-e-eng-04
+          - repd-e-eng-05
+          - repd-e-eng-06
+          - repd-e-eng-07
+          - repd-e-eng-08
+          - repd-e-eng-09
+          - repd-e-eng-10
+          - repd-e-eng-11
+          - repd-e-eng-12
+          - repd-e-eng-13
+          - repd-e-eng-14
+          - repd-e-eng-15
+          - repd-e-eng-16
+          - repd-e-eng-17
+          - repd-e-eng-18
+          - repd-e-eng-19
+          - repd-e-eng-20
+          - repd-e-eng-21
+          - repd-e-eng-22
+          - repd-e-eng-23
+          - repd-e-eng-24
+          - repd-e-eng-25
+          - repd-e-eng-26
+          - repd-e-eng-27
+          - repd-e-eng-28
+          - repd-e-eng-29
+          - repd-e-eng-30
+          - repd-e-eng-31
+          - repd-e-eng-32
+          - repd-e-eng-33
+          - repd-e-eng-34
+          - repd-e-eng-35
+          - repd-e-eng-36
+          - repd-e-eng-37
+          - repd-e-eng-38
+          - repd-e-eng-39
+          - repd-e-eng-40
+          - repd-e-prd-01
+          - repd-e-prd-02
+          - repd-e-npr-01
+          - repd-e-npr-02
+          - repd-e-cfn-01
+      terraform_artifact_version:
+        description: "Artifact version"
+        required: false
+        type: string
+      dataflow_image_version:
+        description: "Docker image version"
+        required: false
+        type: string
+        default: latest
+concurrency:
+  group: 'deployment-dataflow-workflow-${{ inputs.etlProject }}'
+  cancel-in-progress: false
+env:
+  ETLPROJECT: ${{ inputs.etlProject || 'repd-e-eng-13' }}
+  REGION: us-east1
+  ENV_TYPE: '' # Gets set by the set_env_type step
+  SUBSTREAM_ID: 6657dbf8-1f8e-24c3-5515-56a146bd45b3
+  ARTIFACT_NAME: dataflow-terraform-mssql-to-datastore
+  ARTIFACT_VER: ${{ inputs.terraform_artifact_version }}
+  ARTIFACTORY_PATH: '' # Gets set by the set_artifactory_path step. The terraform artifactory location
+  WIF_PROVIDER: '' # Gets set by the set_wif_provider_and_svc step
+  WIF_SVC: '' # Gets set by the set_wif_provider_and_svc step
+  IMPERSONATE_SVC: '' # Gets set by the set_impersonation_account step
+  TF_OP: ${{ inputs.terraform_operation || 'plan' }}
+  JOB_STOP: 'cancel'
+  DATAFLOW_IMAGE_VERSION : ${{ inputs.dataflow_image_version || 'latest' }}
+  SCRIPTS_DIR: '${{ github.workspace }}/deploy/scripts'
+  BRANCH: '' # Gets set by the set_branch_name step
+  WORKING_DIR: '' # Gets set by the set_work_dir step and is the working directory of the extracted terraform deployment code.
+  GHA_SCRIPT_VER: 1.0.5
+  PIPCONFIG_DIR: '${{ github.workspace }}/.github/release/.pip'
+  GITHUB_WORKSPACE: ${{ github.workspace }}
+  WORKFLOW: "Dataflow"
+jobs:
+  Set-Environment:
+    name: Set Environment
+    outputs:
+      env_type: ${{ steps.set_environment_vars.outputs.ENV_TYPE }}
+      runner: ${{ steps.set_environment_vars.outputs.RUNNER }}
+      tf_version: ${{ steps.set_environment_vars.outputs.TF_VERSION }}
+      tf-plan-outcome: ${{ steps.tf-plan.outputs.outcome || steps.tf-plan-destroy.outputs.outcome }}
+      tf-plan-stderr: ${{ steps.tf-plan.outputs.stderr || steps.tf-plan-destroy.outputs.stderr }}
+      tf-plan-exitcode: ${{ steps.tf-plan.outputs.exitcode || steps.tf-plan-destroy.outputs.exitcode }}
+      wif_provider: ${{ steps.set_wif_provider_and_svc.outputs.WIF_PROVIDER }}
+      wif_svc: ${{ steps.set_wif_provider_and_svc.outputs.WIF_SVC }}
+      working_dir: ${{ steps.set_environment_vars.outputs.WORKING_DIR }}
+    runs-on:
+      - garm
+      - dev
+      - us-east4
+      - container
+      - linux
+      - large
+      - mega
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure pip to use Artifactory
+        run: |
+          mkdir -p ~/.pip
+          cp ${{ env.PIPCONFIG_DIR }}/pip.config ~/.pip/pip.conf
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade gha-scripts==${{ env.GHA_SCRIPT_VER }}
+
+      - name: Set Environment Variables
+        id: set_environment_vars
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run:
+          gha-workflow-steps setup_environment --set_env=all
+
+      - name: Download Terraform Artifact
+        run: |
+          gha-workflow-steps download_artifacts \
+          --artifact_name=${{ env.ARTIFACT_NAME }} \
+          --artifact_version=${{ env.ARTIFACT_VER }} \
+          --artifact_path=${{ env.ARTIFACTORY_PATH }}
+
+      - name: Copy Terraform Environment tfvars
+        run: |
+          gha-workflow-steps copy_terraform_environment_tfvars \
+          --artifact_name=${{ env.ARTIFACT_NAME }} \
+          --working_directory=${{ env.WORKING_DIR }}
+
+      - name: Set WIF Provider and Service Account
+        id: set_wif_provider_and_svc
+        run: |
+          gha-workflow-steps set_wif_provider_and_svc \
+          --project=${{ env.ETLPROJECT }}
+
+      # Gcloud and GCP Dependency Steps
+      - name: Authenticate to Google Cloud
+        id: gcloud-auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SVC }}
+
+      - name: Set Impersonation Account
+        id: set_impersonation_account
+        run: |
+          gha-workflow-steps set_impersonation_account \
+          --project=${{ env.ETLPROJECT }}
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          project_id: ${{ env.ETLPROJECT }}
+
+      - name: Create GCS Bucket
+        env:
+          LABELS: "region=${{ env.REGION }},env=${{ env.ENV_TYPE }}"
+        run: |
+          gha-gcputils setup_gcs_bucket \
+          --bucket_name=${{ env.ETLPROJECT }}-terraform-state
+
+      # Terraform Steps
+      - name: Generate Backend Config
+        run: |
+          gha-workflow-steps generate_backend_config \
+          --project=${{ env.ETLPROJECT }} \
+          --artifact=${{ env.ARTIFACT_NAME }} \
+          --working_directory=${{ env.WORKING_DIR }}
+
+      # Terraform Steps
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: true
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        id: init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init --upgrade
+
+      - name: Terraform Plan Apply
+        if: ${{ env.TF_OP == 'apply' || env.TF_OP == 'plan' }}
+        id: tf-plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform plan -out=tfplan.out -no-color \
+          --var-file=environments/${{ env.ETLPROJECT }}.tfvars \
+          --var-file=environments/shared.auto.tfvars \
+          --var="on_delete=${{ env.JOB_STOP }}" \
+          --var="branch_name=${{ env.BRANCH }}" \
+          --var="artifactory_repo=${{ env.ARTIFACTORY_REPO }}" \
+          --var="dataflow_image_version=${{ env.DATAFLOW_IMAGE_VERSION }}"
+
+      - name: Terraform Plan Destroy
+        if: ${{ env.TF_OP == 'destroy' }}
+        id: tf-plan-destroy
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform plan -out=tfplan.out -destroy -no-color \
+          --var-file=environments/${{ env.ETLPROJECT }}.tfvars \
+          --var-file=environments/shared.auto.tfvars \
+          --var="on_delete=${{ env.JOB_STOP }}" \
+          --var="branch_name=${{ env.BRANCH }}" \
+          --var="artifactory_repo=${{ env.ARTIFACTORY_REPO }}" \
+          --var="dataflow_image_version=${{ env.DATAFLOW_IMAGE_VERSION }}"
+
+      - name: Terraform Copy Plan to Text
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |   
+          terraform show -no-color tfplan.out > tfplan.txt
+
+      - name: Write Input to Github Summary
+        env:
+          GITHUB_INPUTS: ${{ toJson(inputs) }}
+        run: |
+          gha-workflow-summary write_inputs_to_github_summary
+  
+      - name: Write Terraform Plan to Github Summary
+        run: |
+          gha-workflow-summary write_tfplan_to_github_summary \
+          --output_path='${{ env.WORKING_DIR }}/tfplan.txt'
+  
+      - name: Upload github action artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfbundle
+          path: ${{ env.WORKING_DIR }}
+          overwrite: true
+          if-no-files-found: error
+          retention-days: 1
+
+  Deploy-Terraform:
+    if: inputs.terraform_operation != 'plan'
+    timeout-minutes: 30
+    outputs:
+      exitcode: ${{ needs.Set-Environment.outputs.tf-plan-exitcode || steps.tf-deploy.outputs.exitcode }}
+      stderr: ${{ needs.Set-Environment.outputs.tf-plan-stderr || steps.tf-deploy.outputs.stderr }}
+    runs-on: ${{ needs.Set-Environment.outputs.runner }}
+    needs: [ Set-Environment ]
+    defaults:
+      run:
+          working-directory: ${{ needs.Set-Environment.outputs.working_dir }}
+    environment: ${{ needs.Set-Environment.outputs.env_type }}
+    env:
+      TERRAFORM_VER: ${{ needs.Set-Environment.outputs.tf_version }}
+      TF-PLAN-OUTCOME: ${{ needs.Set-Environment.outputs.tf-plan-outcome }}
+      TF-PLAN-STDERR: ${{ needs.Set-Environment.outputs.tf-plan-stderr }}
+      TF-PLAN-EXITCODE: ${{ needs.Set-Environment.outputs.tf-plan-exitcode }}
+      WIF_PROVIDER: ${{ needs.Set-Environment.outputs.wif_provider }}
+      WIF_SVC: ${{ needs.Set-Environment.outputs.wif_svc }}
+      WORKING_DIR: ${{ needs.Set-Environment.outputs.working_dir }}
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps: 
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: true
+          terraform_version: ${{ env.TERRAFORM_VER }}
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tfbundle
+          path: ${{ env.WORKING_DIR }} 
+
+      # Gcloud and GCP Dependency Steps
+      - name: Authenticate to Google Cloud
+        id: gcloud-auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SVC }}
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform init --upgrade
+
+      - name: Terraform Deploy
+        id: tf-deploy
+        run: |
+          terraform apply -input=false -compact-warnings tfplan.out
+
+      - name: Deployment Failure
+        if: ${{ failure() && (env.TF-PLAN-OUTCOME == 'failure' || steps.tf-deploy.outcome == 'failure' ) }}
+        uses: actions/github-script@v4
+        with: 
+          script: |
+            core.setFailed(`Job failed due to: 
+              ${{ env.TF-PLAN-STDERR ||  steps.tf-deploy.outputs.stderr }}
+              `);
+
+  Set-Workflow-Status:
+    runs-on: ubuntu-24.04
+    needs: [ Set-Environment, Deploy-Terraform ]
+    if: always()
+    steps:
+      - name: Set workflow status
+        id: set_status
+        run: |
+          if ${{ needs.Set-Environment.result == 'success' && needs.Deploy-Terraform.result == 'success' }}; then
+            echo "success" > probatch-dataflow-workflow-status.txt
+          elif [ "${{ needs.Set-Environment.result }}" == "success" ] && { [ "${{ needs.Deploy-Terraform.outputs.exitcode }}" == "0" ] || [ "${{ needs.Deploy-Terraform.outputs.exitcode }}" == "2" ]; }; then
+            echo "success" > probatch-dataflow-workflow-status.txt
+          else
+            echo "failure" > probatch-dataflow-workflow-status.txt
+          fi
+      - name: Upload workflow status
+        uses: actions/upload-artifact@v4
+        with:
+          name: probatch-dataflow-workflow-status
+          path: probatch-dataflow-workflow-status.txt
