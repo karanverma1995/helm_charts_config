@@ -1,0 +1,92 @@
+name: Deploy Helm Chart - GCP
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Select Environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      region:
+        description: 'Select Region'
+        required: true
+        type: choice
+        options:
+          - us-east4
+          - us-east1
+      action:
+        description: 'Action to perform: install, upgrade, or uninstall'
+        required: true
+        default: 'install'
+        type: choice
+        options:
+          - install
+          - upgrade
+          - uninstall
+      tag:
+        description: 'Enter Image Tag'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on:
+      - linux
+      - garm
+      - container
+      - mega
+      - ${{ github.event.inputs.environment }}
+      - ${{ github.event.inputs.region }}
+    
+    strategy:
+      fail-fast: true
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: projects/545511040973/locations/global/workloadIdentityPools/runners/providers/github
+        service_account: epic-platform-sre-deploy-svc@d-ulti-cs-platform-sre-d2f7.iam.gserviceaccount.com
+        token_format: access_token
+        access_token_lifetime: 300s
+
+    - name: Authenticate with Kubernetes Namespace
+      run: |
+        strat environment get-credentials ${{ secrets.NAMESPACE }} --region ${{ github.event.inputs.region }} --use-gke-auth-plugin --no-cache
+    
+    - name: Set Environment Variables
+      id: set_env
+      run: |
+        if [[ "${{ github.event.inputs.environment }}" == "dev" ]]; then
+          echo "Deploying Dev Image"
+          echo "IMAGE_REPO=${{ secrets.DEV_IMAGE_REPO }}" >> $GITHUB_ENV
+        elif [[ "${{ github.event.inputs.environment }}" == "prod" ]]; then
+          echo "Deploying Prod Image"
+          echo "IMAGE_REPO=${{ secrets.PROD_IMAGE_REPO }}" >> $GITHUB_ENV
+        fi
+
+    - name: Perform Helm Action
+      run: |
+        if [ "${{ github.event.inputs.action }}" == "install" ] || [ "${{ github.event.inputs.action }}" == "upgrade" ]; then
+          helm upgrade --install ${{ secrets.HELM_RELEASE_NAME }} ./helm-charts/influx-transformer --namespace ${{ secrets.NAMESPACE }} --values ./helm-charts/influx-transformer/values.yaml --set image.repository=$IMAGE_REPO --set image.tag=${{ github.event.inputs.tag }}
+        elif [ "${{ github.event.inputs.action }}" == "uninstall" ]; then
+          helm uninstall ${{ secrets.HELM_RELEASE_NAME }} --namespace ${{ secrets.NAMESPACE }}
+        else
+          echo "Invalid action: ${{ github.event.inputs.action }}"
+          exit 1
+        fi
+    
+    - name: Verify Helm Deployment
+      if: ${{ github.event.inputs.action != 'uninstall' }}
+      run: |
+        helm status ${{ secrets.HELM_RELEASE_NAME }} --namespace ${{ secrets.NAMESPACE }}
