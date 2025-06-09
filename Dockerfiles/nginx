@@ -1,0 +1,230 @@
+####################################################################################
+# Dockerfile for a kronos-tc-tenantrouter docker_nginx
+####################################################################################
+
+#-Download dimensions-base-image
+FROM gcr.io/gcp-keng01/dimensions-base-image-master:latest
+
+#-Create a temp dir for installtions during the course of Dockerfile
+RUN mkdir -p /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR
+
+RUN echo " kronos-tc-tenantrouter default files from docker-dimensions/kronos-tc-tenantrouter/files/default locally"
+COPY kronos-tc-tenantrouter/files/default/ /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/
+RUN cp -f /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/ukg.repo /etc/yum.repos.d/
+
+# Delete all files except ukg.repo
+RUN  echo "Deleting all files except ukg.repo..."
+RUN  /usr/bin/find /etc/yum.repos.d/ -type f ! -name 'ukg.repo'  -exec rm -f {} +
+
+# List all files
+RUN  echo "List of files in /etc/yum.repos.d/:"
+RUN  ls /etc/yum.repos.d/
+
+RUN yum clean all
+############### Update Yum ################
+RUN yum install -y epel-release \
+    && yum update -y
+
+############### Installing Packages ################
+
+RUN yum install -y dos2unix wget telnet curl bind-utils unzip sysstat vim systemd-sysv systemd-units zlib-devel collectd cloud-init openssl-devel gcc libffi-devel postgresql-devel make jq sudo \
+&& cd /usr/bin/ \
+&& wget https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tgz \
+&& tar -xzf Python-3.8.1.tgz \
+&& cd Python-3.8.1 \
+&& ./configure --enable-optimizations \
+&& make altinstall \
+&& echo python --version \
+&& rm -f /usr/bin/python3 \
+&& rm -f /usr/bin/pip3 \
+&& ln -s /usr/local/bin/python3.8 /usr/bin/python3 \
+&& ln -s /usr/local/bin/pip3.8 /usr/bin/pip3
+
+
+############### Install Google API Python Client #############
+
+RUN pip3 install --upgrade google-api-python-client google-cloud-storage oauth2client pipenv
+RUN pip3 install requests
+RUN pip3 install psycopg2-binary
+
+##################### Set Root Password #############
+
+RUN echo root:kronites | sudo chpasswd || echo root:kronites | chpasswd
+
+#################### Enable root ssh #################
+
+RUN sed -i 's/ssh_pwauth:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg \
+    && sed -i 's/disable_root: 1/disable_root: 0/g' /etc/cloud/cloud.cfg
+
+###################### Downloading hack-root-ssh & hack-root-ssh.service ################
+
+RUN cd /tmp && curl -f -u ${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD} -O @ARTIFACTORY_URL@/dimension-packer-files-ldi/com/kronos/packer/files/generic-foundation-image/r9int-SNAPSHOT/generic-foundation-image-r9int-SNAPSHOT.zip && cd -
+RUN unzip /tmp/generic-foundation-image-r9int-SNAPSHOT.zip -d /tmp \
+    && chmod -R 755 /tmp/hack-root-ssh \
+    && chown -R root:root /tmp/hack-root-ssh \
+    && cp -r /tmp/hack-root-ssh /usr/bin/hack-root-ssh \
+    && chmod -R 755 /tmp/hack-root-ssh.service \
+    && chown -R root:root /tmp/hack-root-ssh.service \
+    && cp -r /tmp/hack-root-ssh.service /etc/systemd/system/hack-root-ssh.service
+
+###################### Enabling hack-root-ssh.service ################
+
+RUN systemctl enable hack-root-ssh.service
+
+RUN echo " ---------- Installing Packages ----------"
+RUN yum install -y unzip wget curl dos2unix cronie tcpdump mod_wsgi sshpass ca-certificates
+
+####### Remove all repos after GFI unzip above and allow only ukg.repo ############
+# List all files /etc/yum.repos.d/
+RUN  echo "List of files in /etc/yum.repos.d/:"
+RUN  ls /etc/yum.repos.d/
+
+# Delete all files except ukg.repo
+RUN  echo "Deleting all files except ukg.repo..."
+RUN  /usr/bin/find /etc/yum.repos.d/ -type f ! -name 'ukg.repo'  -exec rm -f {} +
+
+# List all files /etc/yum.repos.d/
+RUN  echo "List of files in /etc/yum.repos.d/:"
+RUN  ls /etc/yum.repos.d/
+
+###########################
+
+####################################################################################
+# kronos-nginx::install_nginx_r26 line 9 https://engstash.int.kronos.com/projects/DEPLOY/repos/kronos-nginx/browse/recipes/install_nginx_r26.rb#9
+# kronos-nginx::install_nginx_r26 line 20 https://engstash.int.kronos.com/projects/DEPLOY/repos/kronos-nginx/browse/recipes/install_nginx_r26.rb#20
+#@ARTIFACTORY_URL@/artifactory/falcon-deploy/rpms/nginx-plus/26/nginx-plus-26-1.el7.ngx.x86_64.rpm
+RUN echo " ---------- Installing nginx ----------"
+@INSTALL_NGINX_R26@
+
+
+# kronos-nginx::install_nginx_r26 line 15 https://engstash.int.kronos.com/projects/DEPLOY/repos/kronos-nginx/browse/recipes/install_nginx_r26.rb#15
+RUN echo " ---------- Installing GeoIP ----------"
+@INSTALL_GEOIP@
+
+
+# kronos-nginx::install_nginx_r26 line 17 https://engstash.int.kronos.com/projects/DEPLOY/repos/kronos-nginx/browse/recipes/install_nginx_r26.rb#17
+RUN echo " ---------- Installing libxslt ----------"
+@INSTALL_LIBXSLT@
+
+############ Downloading kronos-nginx package ############
+
+RUN cd @LEAN_DOCKER_INSTALL_TMPDIR@ && curl -f -u ${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD} -O @PACKER_FILES@/kronos-nginx/@READ_PACKER_FILES_FROM@-SNAPSHOT/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT.zip && cd -
+RUN unzip @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT.zip -d @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT
+
+############# Copying packages in /etc/nginx ########
+
+RUN cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ngx_http_headers_more_filter_module_r26.so @NGINX_ETC_DIR@/ngx_http_headers_more_filter_module.so \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ndk_http_module_r26.so @NGINX_ETC_DIR@/ndk_http_module.so \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ngx_http_lua_module_r26.so @NGINX_ETC_DIR@/ngx_http_lua_module.so \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ngx_http_js_module_r26.so @NGINX_ETC_DIR@/modules/ngx_http_js_module.so \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ngx_stream_js_module.so @NGINX_ETC_DIR@/modules/ngx_stream_js_module.so \
+    && chmod -R 755 @NGINX_ETC_DIR@ \
+    && chmod -R 755 @NGINX_ETC_DIR@/modules \
+    && chown -R root:root @NGINX_ETC_DIR@
+
+RUN echo " ---------- Settingup /var/log dir  ----------"
+RUN mkdir -p  /var/log\
+    && chmod -R 755 /var/log \
+    && chown -R root:root /var/log
+
+RUN echo " ---------- Settingup /var/cache dir  ----------"
+RUN mkdir -p  /var/cache\
+    && chmod -R 755 /var/cache \
+    && chown -R root:root /var/cache
+
+
+RUN echo " ---------- Enabling nginx  ----------"
+RUN systemctl enable nginx
+
+RUN echo "Update SEL linux config for dynatrace"
+RUN semanage fcontext -a -t httpd_sys_script_exec_t '/usr/sbin/nginx'; exit 0 \
+    && restorecon -v '/usr/sbin/nginx'
+
+##################### install_dynatrace_nginx.rb #####################
+@INSTALL_DYNATRACE_NGINX@
+
+##################### deploy_nginx.rb ########################
+
+RUN echo "Creating TEMP dir"
+RUN mkdir @TR_TEMP@ \
+    && chmod -R 755 @TR_TEMP@ \
+    && chown -R root:root @TR_TEMP@
+
+RUN echo "Creating NGINX LOG DIR"
+RUN mkdir -p @TR_NGINX_LOG_DIR@ \
+    && chmod -R 757 @TR_NGINX_LOG_DIR@ \
+    && chown -R root:root @TR_NGINX_LOG_DIR@
+
+RUN echo "Creating NGINX DEFAULT LOG DIR"
+RUN mkdir @TR_NGINX_DEFAULT_LOG_DIR@ \
+    && chmod -R 755 @TR_NGINX_DEFAULT_LOG_DIR@ \
+    && chown -R root:root @TR_NGINX_DEFAULT_LOG_DIR@
+
+RUN echo "Creating tenantrouter LOG DIR"
+RUN mkdir -p @TR_LOG_DIR@ \
+    && chmod -R 755 @TR_LOG_DIR@ \
+    && chown -R root:root @TR_LOG_DIR@
+
+RUN echo " kronos-tc-tenantrouter default files from docker-dimensions/kronos-tc-tenantrouter/files/default locally"
+COPY kronos-tc-tenantrouter/files/default/ @LEAN_DOCKER_INSTALL_TMPDIR@
+
+RUN echo "Set Nginx Repo File"
+RUN cp @LEAN_DOCKER_INSTALL_TMPDIR@/nginx-plus-7.repo @TR_NGINX_REPO@/nginx-plus-7.repo \
+    && chmod -R 644 @TR_NGINX_REPO@/nginx-plus-7.repo \
+    && chown -R root:root @TR_NGINX_REPO@/nginx-plus-7.repo
+
+RUN echo "Download nginxconfig and extract"
+RUN cd @TR_TEMP@ && curl -f -u ${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD} -O @ARTIFACTORY_URL@/falcon-all-snapshot-local/com/kronos/tenantrouter/nginxconfig/@TR_ARTIFACT_VERSION@/nginxconfig-@TR_ARTIFACT_VERSION@.zip && cd -
+RUN unzip @TR_TEMP@/nginxconfig-@TR_ARTIFACT_VERSION@.zip -d @TR_TEMP@ \
+    && chown -R root:root @TR_TEMP@ \
+    && yes | cp -f -R @TR_TEMP@/etc/ /
+
+RUN echo "Modifying Security Limits Nginx"
+RUN echo "nginx hard nofile 65536" >> @TR_SECURITY_DIR@/limits.conf \
+    && echo "nginx soft nofile 65536" >> @TR_SECURITY_DIR@/limits.conf \
+    && echo "Nginx Security file Appened"
+
+RUN echo "Adding Cron Data"
+RUN touch /etc/cron.d/tr_cron
+RUN chmod 755 /etc/cron.d/tr_cron
+RUN touch @TR_LOG_DIR@/tr_reload_cron.log
+RUN echo '* * * * * /apps/tenantrouter/bin/tr_reload.sh >/apps/tenantrouter/logs/tr_reload_cron.log 2>&1' > /etc/cron.d/tr_cron
+
+RUN echo "Set permission on etc"
+RUN chmod -R 755 @NGINX_ETC_DIR@
+
+RUN echo "Adding required sudo permissions for nginx user"
+RUN cp @LEAN_DOCKER_INSTALL_TMPDIR@/nginx_sudoers @TR_SUDO_DIR@/nginx_sudoers \
+    && chmod -R 440 @TR_SUDO_DIR@/nginx_sudoers \
+    && chown -R root:root @TR_SUDO_DIR@/nginx_sudoers
+
+####################### configure_tenantrouter.rb ##############
+
+RUN echo "Download tenantrouter.zip and extract"
+RUN cd @TR_TEMP@ && curl -f -u ${ARTIFACTORY_USER}:${ARTIFACTORY_PASSWORD} -O @ARTIFACTORY_URL@/falcon-all-snapshot-local/com/kronos/tenantrouter/tenantrouter/@TR_ARTIFACT_VERSION@/tenantrouter-@TR_ARTIFACT_VERSION@.zip && cd -
+RUN chmod -R 655 @TR_TEMP@/tenantrouter-@TR_ARTIFACT_VERSION@.zip
+RUN unzip @TR_TEMP@/tenantrouter-@TR_ARTIFACT_VERSION@.zip -d @TR_TEMP@ \
+    && chown -R root:root @TR_TEMP@ \
+    && yes | cp -f -R @TR_TEMP@/apps/ /
+
+RUN echo "Copying Retrofit files"
+RUN cp /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/update-location-conf.sh /apps/tenantrouter/update-location-conf.sh \
+    &&  cp /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/rollback-update-location-conf.sh /apps/tenantrouter/rollback-update-location-conf.sh \
+	&&  cp /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/update_prologin_retrofit.sh /apps/tenantrouter/update_prologin_retrofit.sh \
+	&&  cp /usr/local/kronos/LEAN_DOCKER_INSTALL_TMPDIR/rollback_prologin_retrofit.sh /apps/tenantrouter/rollback_prologin_retrofit.sh \
+    &&  cp @LEAN_DOCKER_INSTALL_TMPDIR@/tr_revert_retrofit_primus.py @TR_INSTALLATION_DIR@/tr_revert_retrofit_primus.py \
+    &&  cp @LEAN_DOCKER_INSTALL_TMPDIR@/tr_retrofit_primus.py @TR_INSTALLATION_DIR@/tr_retrofit_primus.py \
+    && chmod -R 755 @TR_INSTALLATION_DIR@
+
+####################### configure_openam_agent.rb ####################
+
+RUN echo "copying files"
+RUN cp @LEAN_DOCKER_INSTALL_TMPDIR@/openam_ngx_auth_module.so @NGINX_ETC_DIR@/openam_ngx_auth_module.so \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/agent.conf.tr @NGINX_ETC_DIR@/agent.conf \
+    && cp @LEAN_DOCKER_INSTALL_TMPDIR@/nginx.conf.tr @NGINX_ETC_DIR@/nginx.conf \
+    && chmod -R 755 @NGINX_ETC_DIR@
+
+####################### kronos-nginx copy_nginx_file.rb ##############33
+RUN echo "Copying nginx file"
+RUN cp @LEAN_DOCKER_INSTALL_TMPDIR@/kronos-nginx-@READ_PACKER_FILES_FROM@-SNAPSHOT/ngx_http_headers_more_filter_module_r26.so @NGINX_ETC_DIR@/ngx_http_headers_more_filter_module.so \
+    && chmod -R 755 @NGINX_ETC_DIR@
