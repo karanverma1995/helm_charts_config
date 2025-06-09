@@ -1,0 +1,7 @@
+Grafana Queries
+
+https://samber.github.io/awesome-prometheus-alerts/
+
+https://cloud.google.com/monitoring/dashboards/event-types
+
+last_over_time(compute_googleapis_com:instance_group_size{instance_group_name =~".*prd.*(ums|trt).*"}[30m]) < 4
