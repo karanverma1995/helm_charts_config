@@ -1,0 +1,58 @@
+plugin: google.cloud.gcp_compute
+{# for authentication, we'll use machineaccount or accesstoken as an auth_kind, 
+Ansible automatically checks GCP_AUTH_KIND environment variable, if we'll not define it here.  #}
+
+{% if inv_auth_kind is defined and inv_auth_kind|trim !='' %}
+auth_kind: {{inv_auth_kind}}
+{%endif%}
+
+{% if inv_access_token is defined and inv_access_token|trim !='' %}
+access_token: {{inv_access_token}}
+{%endif%}
+
+{% if inv_svc_json is defined and inv_svc_json|trim !='' %}
+service_account_file: {{inv_svc_json}}
+{%endif%}
+
+projects: 
+{% for project in inv_google_project_list %}
+  - {{project}}
+{%endfor%}
+
+{% if inv_hostnames_param_list | default([]) | length > 0 %}
+hostnames:
+{% for host in inv_hostnames_param_list %}
+  - {{host}}
+{%endfor%}
+{%endif%}
+
+{% if inv_hostname_suffix %}
+name_suffix: {{inv_hostname_suffix}}
+{%endif%}
+
+{% if inv_filters_list | default([]) | length > 0 %}
+filters:
+{% for item in inv_filters_list %}
+  - {{item}}
+{%endfor%}
+{%endif%}
+
+{% if inv_composer_list | default([]) | length > 0 %}
+compose:
+{% for item in inv_composer_list %}
+  {{item}}
+{%endfor%}
+{% endif %}
+
+groups: 
+{% for i in range(inv_number_of_groups | int) %}
+  node{{i+1}}: "'-0{{i+1}}' in labels.instance_name[-3:]"
+{% endfor %}
+
+{% if inv_keyed_group_data | default([]) | length > 0 %}
+keyed_groups:
+{% for group_data in inv_keyed_group_data %}
+  - key: {{ group_data.key }}
+    separator: '{{ group_data.separator }}'
+{% endfor %}
+{% endif %}
