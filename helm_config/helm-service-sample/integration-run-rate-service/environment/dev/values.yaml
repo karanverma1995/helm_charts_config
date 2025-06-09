@@ -1,0 +1,126 @@
+name: integration-run-config-query
+namespace: ist-dev
+env_type: eng
+substream_id: da036697-03fb-9102-3a4e-f03810fd07e4
+replicaCount: 2
+revisionHistoryLimit: 5
+image:
+  repository: ukgartifactory.pe.jfrog.io/ist-docker-prod/ist/integration-run-config-query
+  tag: ''
+env:
+- name: POD_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.name
+- name: POD_NAMESPACE
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.namespace
+- name: IMAGE
+  value: ukgartifactory.pe.jfrog.io/ist-docker-dev/ist/integration-run-config-query
+- name: IMAGE_TAG
+  value: ''
+- name: IST_RABBITMQ_SSL_ENABLED
+  value: 'true'
+- name: SPRING_PROFILES_ACTIVE
+  value: prod
+- name: EUREKA_HOST
+  value: eureka
+- name: EUREKA_PORT
+  value: '8080'
+- name: EUREKA_ENABLED
+  value: 'false'
+- name: REGISTER_WITH_EUREKA
+  value: 'false'
+- name: MONGODB_WTIMEOUT_MS
+  value: '1000'
+- name: MONGODB_WRITE_CONCERN
+  value: '1'
+- name: JAVA_OPTS
+  value: -XX:MaxRAMPercentage=80 -Djava.security.egd=file:/dev/./urandom
+- name: OTEL_TRACES_EXPORTER
+  value: none
+- name: OTEL_LOGS_EXPORTER
+  value: none
+- name: OTEL_METRICS_EXPORTER
+  value: none
+- name: ENABLE_SERVICE
+  value: 'true'
+- name: COLUMN_VALUE_AS_OBJECT_FLAG
+  value: 'true'
+- name: VAULT_SCHEME
+  value: https
+- name: VAULT_HOST
+  value: https://ultisafe-p.us-east4.dev.gcp.int:8200/
+- name: VAULT_PORT
+  value: '8200'
+- name: VAULT_CERT_ENABLED
+  value: 'true'
+- name: VAULT_CONTEXT
+  value: bdes/internal
+- name: MULE_VAULT_HOST
+  value: https://ultisafe-p.us-east4.dev.gcp.int:8200/
+- name: MULE_VAULT_CONTEXT
+  value: mulesoft/keys
+- name: PORT_HTTP
+  value: '8080'
+- name: PORT
+  value: '8080'
+- name: IST_INTEGRATION_CONFIG_CMD_MONGODB_URI
+  valueFrom:
+    secretKeyRef:
+      key: IST_INTEGRATION_CONFIG_CMD_MONGODB_URI
+      name: integration-run-config-query
+- name: IST_INTEGRATION_SCHEDULER_MONGODB_URI
+  valueFrom:
+    secretKeyRef:
+      key: IST_INTEGRATION_SCHEDULER_MONGODB_URI
+      name: integration-run-config-query
+- name: IST_VENDOR_FILE_TYPE_CONFIG_CMD_MONGODB_URI
+  valueFrom:
+    secretKeyRef:
+      key: IST_VENDOR_FILE_TYPE_CONFIG_CMD_MONGODB_URI
+      name: integration-run-config-query
+- name: VAULT_CERT
+  valueFrom:
+    secretKeyRef:
+      key: VAULT_CERT
+      name: integration-run-config-query
+- name: VAULT_KEY
+  valueFrom:
+    secretKeyRef:
+      key: VAULT_KEY
+      name: integration-run-config-query
+- name: MULE_VAULT_CERT
+  valueFrom:
+    secretKeyRef:
+      key: MULE_VAULT_CERT
+      name: integration-run-config-query
+- name: MULE_VAULT_KEY
+  valueFrom:
+    secretKeyRef:
+      key: MULE_VAULT_KEY
+      name: integration-run-config-query
+livenessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /_manage/health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+readinessProbe:
+  failureThreshold: 3
+  httpGet:
+    path: /_manage/health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    memory: 1Gi
