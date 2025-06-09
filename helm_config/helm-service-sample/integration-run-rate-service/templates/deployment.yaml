@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    prometheus.io/path: /_manage/metrics
+    prometheus.io/port: '8080'
+    prometheus.io/scrape: 'true'
+  labels:
+    env_type: {{ .Values.env_type }}
+    ist.ulti.io/vault: 'true'
+    ist.ulti.io/zuul-integration-platform-gateway: 'true'
+    substream_id: {{ .Values.substream_id }}
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Values.name }}
+      app.kubernetes.io/name: {{ .Values.name }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /_manage/metrics
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app.kubernetes.io/instance: {{ .Values.name }}
+        app.kubernetes.io/name: {{ .Values.name }}
+        env_type: {{ .Values.env_type }}
+        ist.ulti.io/vault: 'true'
+        ist.ulti.io/zuul-integration-platform-gateway: 'true'
+        stratosphere.ulti.io/app-name: {{ .Values.name }}
+        stratosphere.ulti.io/binding-injection: 'true'
+        substream_id: {{ .Values.substream_id  }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: stratosphere.ulti.io/app-name
+                  operator: In
+                  values:
+                  - {{ .Values.name }}
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - env:
+          {{- range .Values.env }}
+          - name: {{ .name }}
+            {{- if .valueFrom }}
+            valueFrom:
+              {{- if .valueFrom.fieldRef }}
+              fieldRef:
+                fieldPath: {{ .valueFrom.fieldRef.fieldPath }}
+              {{- end }}
+              {{- if .valueFrom.secretKeyRef }}
+              secretKeyRef:
+                name: {{ .valueFrom.secretKeyRef.name }}
+                key: {{ .valueFrom.secretKeyRef.key }}
+              {{- end }}
+            {{- else }}
+            value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
+        image: '{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        name: {{ .Values.name }}
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      volumes:
+      - emptyDir: {}
+        name: tmp-volume
