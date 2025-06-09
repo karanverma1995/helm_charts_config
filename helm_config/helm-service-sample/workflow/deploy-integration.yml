@@ -1,0 +1,74 @@
+name: Deploy integration-run-config-query service
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select Environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      region:
+        description: "Select Region"
+        required: true
+        type: choice
+        options:
+          - dlas1
+          - us-east1
+          - northamerica-northeast1
+          - us-west1
+      image_tag:
+        description: "Image Tag"
+        required: true
+        type: string
+jobs:
+  deploy:
+    runs-on:
+      - linux
+      - garm
+      - vm
+      - mega
+      - ${{ github.event.inputs.environment }}
+      - ${{ github.event.inputs.region }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with Kubernetes Namespace
+        run: |
+          if [ "${{ github.event.inputs.region }}" == "dlas1" ]; then
+            STRAT_USERNAME='${{ secrets.DLAS_STRAT_USERNAME }}' STRAT_PASSWORD='${{ secrets.DLAS_STRAT_PASS }}' strat environment get-credentials ${{ secrets.DLAS_NS }} --region dlas1 -v8
+          elif [ "${{ github.event.inputs.region }}" == "us-east1" ]; then
+            STRAT_USERNAME='${{ secrets.UCLOUD_PROD_USERNAME }}' STRAT_PASSWORD='${{ secrets.UCLOUD_PROD_PASSWORD }}' strat environment get-credentials ${{ secrets.NAMESPACE }} --region atl
+          elif [ "${{ github.event.inputs.region }}" == "northamerica-northeast1" ]; then
+            STRAT_USERNAME='${{ secrets.UCLOUD_PROD_USERNAME }}' STRAT_PASSWORD='${{ secrets.UCLOUD_PROD_PASSWORD }}' strat environment get-credentials ${{ secrets.NAMESPACE }} --region tor
+          elif [ "${{ github.event.inputs.region }}" == "us-west1" ]; then
+            STRAT_USERNAME='${{ secrets.UCLOUD_PROD_USERNAME }}' STRAT_PASSWORD='${{ secrets.UCLOUD_PROD_PASSWORD }}' strat environment get-credentials ${{ secrets.NAMESPACE }} --region plas1
+          else
+            echo "Unknown region: ${{ github.event.inputs.region }}"
+            exit 1
+          fi
+
+      - name: Deploy integration-run-config-query Service Helm Chart
+        run: |
+          helm upgrade --install integration-run-config-query ./services/integration-run-config-query \
+          --namespace ${{ secrets.DLAS_NS }} \
+          --values ./services/integration-run-config-query/environment/dev/dlas/integration-run-config-query-values.yaml \
+          --set-literal image.tag='${{ github.event.inputs.image_tag }}' \
+          --set-literal env_type='${{ github.event.inputs.environment }}' \
+          --set-literal namespace='${{ secrets.DLAS_NS }}' \
+          --set-literal secrets.IST_INTEGRATION_CONFIG_CMD_MONGODB_URI='${{ secrets.IST_INTEGRATION_CONFIG_CMD_MONGODB_URI }}' \
+          --set-literal secrets.IST_INTEGRATION_SCHEDULER_MONGODB_URI='${{ secrets.IST_INTEGRATION_SCHEDULER_MONGODB_URI }}' \
+          --set-literal secrets.IST_VENDOR_FILE_TYPE_CONFIG_CMD_MONGODB_URI='${{ secrets.IST_VENDOR_FILE_TYPE_CONFIG_CMD_MONGODB_URI }}' \
+          --set-literal secrets.MULE_VAULT_CERT='${{ secrets.MULE_VAULT_CERT }}' \
+          --set-literal secrets.MULE_VAULT_KEY='${{ secrets.MULE_VAULT_KEY }}' \
+          --set-literal secrets.VAULT_CERT='${{ secrets.VAULT_CERT }}' \
+          --set-literal secrets.VAULT_KEY='${{ secrets.VAULT_KEY }}'
+      - name: List the Pods
+        run: |
+          echo "Getting Pods"
+          kubectl get pods
+          helm version
