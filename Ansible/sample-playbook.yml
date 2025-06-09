@@ -1,0 +1,226 @@
+---
+- import_playbook: preconfiguration.yml
+#####################################################################################################
+######################################## LOCAL PLAY ################################################
+##################################################################################################### 
+
+### add role/task in this play if you just want to access a GCP service like cloud DNS, etc 
+# and want to configure that or just fetching data from GCP  
+
+- name: fetching and setting GSM secrets
+  hosts: localhost
+  gather_facts: false
+  become: true
+  environment:
+    GOOGLE_APPLICATION_CREDENTIALS: "{{ GOOGLE_APPLICATION_CREDENTIALS }}"
+    GCP_ACCESS_TOKEN: "{{ GCP_ACCESS_TOKEN }}"
+  vars:
+    FLAG_NO_LOG: "{{ FLAG_NO_LOG }}"
+    DEBUG_MODE: "{{ DEBUG_MODE }}"
+  collections:    
+    - common.collection
+  tasks:    
+    - block: 
+      - name: Install required Python packages
+        ansible.builtin.pip:
+          name:
+            - google-api-python-client
+          state: present
+
+      - name: Build list of DNS records
+        set_fact:
+          dns_records: "{{ dns_records | default([]) + [{'host_fqdn': hostvars[item].host_fqdn, 'private_ip': hostvars[item].private_ip}] }}"
+        with_items: "{{ groups['all'] }}"
+              
+      - name: Register DNS
+        ansible.builtin.include_role:
+          name: register_dns
+          tasks_from: register_dns_local
+        vars:
+          DNS_REGISTER: true
+          DNS_HOST_FQDN: "{{ item.host_fqdn }}"
+          DNS_IPADDRESS: "{{ item.private_ip }}"
+        with_items: "{{ dns_records }}"
+      
+      rescue:
+        - name: Github Error Summary
+          ansible.builtin.include_role:
+            name: github_error_n_summary
+            tasks_from: github_error_summary
+        - name: Fail Playbook {{ playbook_name  }}
+          ansible.builtin.fail:
+            msg: "Playbook -{{ playbook_name  }} failed" 
+#####################################################################################################
+######################################## REMOTE PLAY ################################################
+#####################################################################################################
+
+- name: Run a play using the collections keyword
+  hosts: all
+  remote_user: "{{ SSH_ADMIN_USER }}"
+  become: true
+  gather_facts: false
+  collections:
+    - ums.collection
+    - common.collection
+  vars:
+    FLAG_NO_LOG: false
+
+  pre_tasks:
+    - name: Display start message
+      debug:
+        msg: |
+          "***************************************************************************************"
+          "*************************** Configuration Playbook..***********************************"
+          "***************************************************************************************"
+    - name: Copy a directory copy files and archive files on the control machine
+      ansible.builtin.import_role:
+        name: common.collection.copy_files
+        tasks_from: copy
+      vars:      
+        scripts:
+          - yum_clean_cache.sh
+          - register_dns.py
+          - schedule_infra_scripts.sh
+          #- docker_ums_backend_get_props.py
+          - Configure_LDAP_Client.sh
+          - config_tomcat_ums_backend_docker.py
+        attachments:
+          - tomcat_external_logconfig
+          - register_crowdstrike.sh
+          - register_pim.sh
+          - register_tanium.sh
+
+  tasks:
+    - block:
+
+      # 1. RL10 Linux Wait For EIP --RS Specific, NOT Required
+      # 2. RL10 Linux Setup Hostname-- This can be done in DNS registration, if required, but this is not required
+
+      # 3. yum_clean_cache 
+      - name: Yum Clean Cache
+        import_role:
+          name: yum_clean_cache
+
+      # 4. RL10 Linux Enable Monitoring
+      - name: configure_enable_collectd
+        import_role:
+          name: configure_enable_collectd
+
+      # 5. RL10 Linux Setup Automatic Upgrade --RightLink Specific, NOT Required
+      # 6. RL10 Linux Enable Docker Support - rightlink specific, NOT Required
+
+      # 7. print_env_and_inputs
+      - name: Print env vars, config ipv4, create image file
+        ansible.builtin.include_role:
+          name: common.collection.utilities
+          tasks_from: "{{ item }}"
+        loop:
+          - print_env
+          - sysctl_params
+          - fetch_image_name
+      # 8. Include_Securityfixes 
+      - name: import include_securityfixes
+        ansible.builtin.include_role:
+          name: include_securityfixes    
+      # # 9. Install Python Library 
+      - name: Install Python Library
+        import_role:
+          name: install_python_library
+        vars:
+          LIBRARY_DIR_PATH: "{{ COMMON_SCRIPTS_DIR }}"
+          PYTHON_VERSION: "{{ PYTHON_VERSION }}"    
+      # 10. set_environment_variables 
+      - name: Set environment variables
+        ansible.builtin.include_role:
+          name: set_environment_variables
+      # 11. remove_enguser_script 
+      - name: import remove_enguser role
+        import_role:
+          name: remove_enguser     
+      # 12. Prevent NetworkManager Update 
+      - name: Configure network Manager
+        import_role:
+          name: network_manager    
+      # 13. Overwrite Resolv Conf 
+      - name: import overwrite_resolv_conf role
+        import_role:
+          name: overwrite_resolv_conf       
+      # 14. Register_DNS_Server_Array -local Play
+      # 15. Tag Instance --- TF/Ansible (it can be done in TF if retry logic is not required)
+      # 16. Create and Attach Volume --TF
+      # 17. Format And Mount Volume -
+      # - name: utilities
+      #   ansible.builtin.include_role:
+      #     name: ums.collection.format_and_mount
+      #   vars:
+      #     disks:
+      #       - device_name: "persistent-disk-1"
+      #         mount_path: "/data"
+      # 18. Docker Pull Container 
+      - name: Docker Pull Images
+        import_role:
+          name: docker_pull_image
+        vars:
+          DOCKER_IMAGES: "{{ DOCKER_IMAGES_BACKEND_TOMCAT }}"
+          REGISTRY_URL: "{{ REGISTRY_URL_LOCAL }}"
+      # 19. Docker_UMS_Backend_Get_Props 
+      - name: Docker UMS Backend Get Props
+        ansible.builtin.include_role:
+           name: docker_ums_backend_get_props
+      # 20. config_tomcat_ums_backend_docker 
+      - name: config_tomcat_ums_backend_docker
+        ansible.builtin.include_role:
+           name: config_tomcat_ums_backend_docker
+      # 21. Docker_Start_UMS
+            # -move to start_application.yml
+      # # 22. Manage_Load_Balancer_Requirements_UMS_ILB --TF
+      # # 23. Config_n_Start_Splunk 
+      #       # -move to start_application.yml
+      # # 24. Configure_LDAP_Client 
+      # - name: Configuring LDAP
+      #   ansible.builtin.include_role:
+      #     name: ldap
+      #   vars:
+      #     LDAP_APP_NAME: "{{ SERVICE_ID }}"
+      # # 25. Schedule_Infra_scripts 
+      # - name: import configure_infra_tools role which configures PIM, Tanium, & CrowdStrike
+      #   import_role:
+      #     name: configure_infra_tools
+      # 26. Docker_Tomcat_Logrotation 
+      - name: Configure logrotation (using the role)
+        import_role:
+          name: log_rotation
+        vars:
+          CRON_JOB_PATH: "/etc/cron.hourly/catalina"
+          CRON_JOB_COMMAND: |  # Define cron job as multiline string
+            #SHELL=/bin/bash
+            #PATH=/sbin:/bin:/usr/sbin:/usr/bin
+            #MAILTO=root
+            #* * * * * root /usr/sbin/logrotate -v /etc/logrotate.d/ums
+          FILE_NAME: "tomcat_external_logconfig"  # Use the new variable
+          LOGROTATE_CONFIG_DST: "/etc/logrotate.d/tomcat"  # Destination for logrotate config
+          RESTART_COMMAND: "sudo systemctl restart crond"
+      # 27. Set_Instance_Scheduling ---TF
+      # 28. Validate_Health_Check_UMS--Enable_as_prod
+      # 29. Manage_Instance_Group_Registration  --TF
+      # 30. Set_Boot_Flag_Upgrade --- NA
+      # 31. set_instance_recovery_labels
+      # 32. register pim saas
+      rescue:   
+      
+        - name: clean_up the {{ REMOTE_ATTACH_DIR_PATH }}  directory
+          ansible.builtin.include_role:
+            name: common.collection.copy_files
+            tasks_from: cleanup     
+
+        - name: Fail Playbook {{ playbook_name }}
+          ansible.builtin.fail:
+            msg: "Playbook -{{ playbook_name }} failed"
+
+        - name: Github Summary
+          ansible.builtin.include_role:
+            name: github_error_n_summary
+            tasks_from: github_summary      
+
+
+# - import_playbook: cleanup.yml            
